@@ -1,0 +1,81 @@
+"use client"
+
+import { useEffect, useRef } from "react"
+import { fetchVyatPixStatus } from "./pix-vyat"
+import { type PaymentStatus, type SavedOrder } from "./order-store"
+
+const POLL_INTERVAL_MS = 5000
+/** Tempo máximo de polling antes de desistir (1h cobre PIX que vencem em 30min com folga). */
+const POLL_TIMEOUT_MS = 60 * 60 * 1000
+
+/** Mapeia status vindo do Vyat (`/pix/status`) para nosso PaymentStatus interno. */
+function mapVyatStatus(status: string): PaymentStatus {
+  switch (status) {
+    case "approved":
+      return "approved"
+    case "refunded":
+      return "refunded"
+    case "chargeback":
+      return "chargeback"
+    case "pending":
+    default:
+      return "pending"
+  }
+}
+
+interface UsePaymentTrackingOptions {
+  order: SavedOrder | null
+  onUpdate: (patch: Partial<SavedOrder>) => void
+}
+
+/**
+ * Hook que faz polling do status do PIX no Vyat enquanto o pedido está pendente.
+ * Quando detecta mudança, chama `onUpdate` com o patch — parent é responsável
+ * por persistir e atualizar seu state.
+ */
+export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOptions): void {
+  const startedAt = useRef<number>(Date.now())
+  const onUpdateRef = useRef(onUpdate)
+  onUpdateRef.current = onUpdate
+
+  useEffect(() => {
+    startedAt.current = Date.now()
+  }, [order?.id])
+
+  useEffect(() => {
+    if (!order) return
+    if (order.payment.method !== "pix") return
+    if (order.paymentStatus !== "pending") return
+    if (!order.gatewayTransactionId) return
+
+    let cancelled = false
+
+    const tick = async () => {
+      if (cancelled) return
+      if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) return
+
+      try {
+        const remote = await fetchVyatPixStatus(order.gatewayTransactionId!)
+        if (cancelled) return
+
+        const newStatus = mapVyatStatus(remote.status)
+        if (newStatus === order.paymentStatus) return
+
+        onUpdateRef.current({
+          paymentStatus: newStatus,
+          paidAt: newStatus === "approved" ? Date.now() : order.paidAt,
+        })
+      } catch {
+        // erro silencioso — próxima tentativa cobre
+      }
+    }
+
+    void tick()
+    const interval = setInterval(tick, POLL_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [order?.id, order?.gatewayTransactionId, order?.paymentStatus, order?.payment.method, order])
+}

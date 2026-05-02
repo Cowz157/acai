@@ -1,0 +1,225 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  /* Brand colors - Açaí Tropical */
+  --primary: #4a0e5c;
+  --primary-foreground: #ffffff;
+  --primary-light: #5b1a6b;
+  --primary-soft: #f3e8f7;
+
+  --secondary: #f5f3f7;
+  --secondary-foreground: #4a0e5c;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --success-soft: #dcfce7;
+
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+
+  --accent-zero: #14b8a6;
+
+  --best-badge: #e9d5ff;
+  --best-badge-text: #5b21b6;
+
+  --muted: #f5f5f5;
+  --muted-foreground: #6b7280;
+  --accent: #f3e8f7;
+  --accent-foreground: #4a0e5c;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #4a0e5c;
+  --radius: 0.75rem;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #4a0e5c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3e8f7;
+  --sidebar-accent-foreground: #4a0e5c;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #4a0e5c;
+
+  --chart-1: #4a0e5c;
+  --chart-2: #16a34a;
+  --chart-3: #ef4444;
+  --chart-4: #4dd0d6;
+  --chart-5: #f59e0b;
+}
+
+.dark {
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #4a0e5c;
+  --primary-foreground: #ffffff;
+  --secondary: #262626;
+  --secondary-foreground: #ffffff;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #262626;
+  --input: #262626;
+  --ring: #4a0e5c;
+}
+
+@theme inline {
+  --font-sans: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+  --font-display: var(--font-nunito), 'Nunito', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-accent-zero: var(--accent-zero);
+  --color-best-badge: var(--best-badge);
+  --color-best-badge-text: var(--best-badge-text);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Hide scrollbar for category nav */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Best seller pulse animation */
+@keyframes best-seller-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7), 0 2px 6px rgba(0, 0, 0, 0.06);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(22, 163, 74, 0), 0 2px 6px rgba(0, 0, 0, 0.06);
+    transform: scale(1.015);
+  }
+}
+.animate-best-seller-pulse {
+  animation: best-seller-pulse 1.6s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform, box-shadow;
+}
+
+/* Cart button feedback when adding item */
+@keyframes cart-pulse {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(1.18); }
+  60% { transform: scale(0.95); }
+}
+.animate-cart-pulse {
+  animation: cart-pulse 0.6s ease-in-out;
+}
+
+@keyframes cart-bar-pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.08); }
+}
+.animate-cart-bar-pulse {
+  animation: cart-bar-pulse 0.6s ease-in-out;
+  transform-origin: bottom;
+}
+
+/* Step transition fade-in for checkout */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-step-in {
+  animation: fade-in-up 0.3s ease-out;
+}
+
+/* Modais e sidebars — fade do overlay + animações de entrada do conteúdo */
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-overlay-fade {
+  animation: overlay-fade 0.18s ease-out;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-modal-pop {
+  animation: modal-pop 0.18s ease-out;
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-drawer-in {
+  animation: drawer-in 0.25s ease-out;
+}
