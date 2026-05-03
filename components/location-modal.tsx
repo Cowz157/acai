@@ -22,6 +22,7 @@ export function LocationModal() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>(0)
   const [state, setState] = useState("Rio de Janeiro")
+  const [stateCode, setStateCode] = useState<string | null>(null)
   const [city, setCity] = useState("Angra dos Reis")
   /** Marca true quando o estado/cidade foram preenchidos via IP (não manual). */
   const [autoDetected, setAutoDetected] = useState(false)
@@ -48,6 +49,7 @@ export function LocationModal() {
       if (loc?.country === "BR" && loc.city && loc.state) {
         setCity(loc.city)
         setState(loc.state)
+        setStateCode(loc.stateCode ?? null)
         setAutoDetected(true)
         setStep(4)
       } else {
@@ -201,15 +203,13 @@ export function LocationModal() {
                 Detectamos que você está em{" "}
                 <strong className="text-primary">
                   {city}
-                  {state ? ` - ${state}` : ""}
+                  {stateCode ? ` - ${stateCode}` : ""}
                 </strong>
-                . Entregamos em <strong>Angra Dos Reis - RJ</strong> em{" "}
-                <strong>30 a 50 min</strong>.
+                . Seu pedido chega em <strong>30 a 50 minutos</strong>.
               </p>
             ) : (
               <p className="mt-2 text-center text-sm text-foreground">
-                A loja mais próxima fica a <strong className="text-primary">1,6km</strong> de você! Seu pedido chegará
-                entre <strong>30 a 50 minutos</strong>.
+                Boa! Seu pedido chega entre <strong>30 a 50 minutos</strong>.
               </p>
             )}
             <div className="mt-5 flex justify-center">
