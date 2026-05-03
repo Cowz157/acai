@@ -3,17 +3,28 @@
 import { useEffect, useState } from "react"
 import { CheckCircle2, Loader2, MapPin } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
+import { fetchIpLocation } from "@/lib/geolocate"
 
-type Step = 1 | 2 | 3 | 4
+/**
+ * Steps:
+ *   0 — detecting (auto via IP, sem clique do user)
+ *   1 — manual: escolher estado (fallback se IP falhar)
+ *   2 — manual: escolher cidade
+ *   3 — fake "procurando loja" (apenas no fluxo manual, pra dar credibilidade)
+ *   4 — sucesso "loja encontrada"
+ */
+type Step = 0 | 1 | 2 | 3 | 4
 
 const SEEN_KEY = "acai-location-modal-seen"
 
 export function LocationModal() {
   // Inicia fechado pra evitar flash no primeiro render (SSR) e abre só após verificar localStorage.
   const [open, setOpen] = useState(false)
-  const [step, setStep] = useState<Step>(1)
+  const [step, setStep] = useState<Step>(0)
   const [state, setState] = useState("Rio de Janeiro")
   const [city, setCity] = useState("Angra dos Reis")
+  /** Marca true quando o estado/cidade foram preenchidos via IP (não manual). */
+  const [autoDetected, setAutoDetected] = useState(false)
 
   useEffect(() => {
     try {
@@ -28,6 +39,28 @@ export function LocationModal() {
     }
   }, [])
 
+  // Auto-detecção via IP assim que o modal abre
+  useEffect(() => {
+    if (!open || step !== 0) return
+    let cancelled = false
+    fetchIpLocation().then((loc) => {
+      if (cancelled) return
+      if (loc?.country === "BR" && loc.city && loc.state) {
+        setCity(loc.city)
+        setState(loc.state)
+        setAutoDetected(true)
+        setStep(4)
+      } else {
+        // Fallback: pede estado/cidade manualmente
+        setStep(1)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, step])
+
+  // Step 3 (manual flow) tem delay simulado de "procurando"
   useEffect(() => {
     if (step === 3) {
       const t = setTimeout(() => setStep(4), 2000)
@@ -56,6 +89,18 @@ export function LocationModal() {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+        {step === 0 && (
+          <div className="flex flex-col items-center py-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-center text-base font-semibold text-foreground">
+              Detectando sua localização...
+            </p>
+            <p className="mt-1 text-center text-xs text-muted-foreground">
+              Estamos buscando a loja mais próxima
+            </p>
+          </div>
+        )}
+
         {step === 1 && (
           <>
             <div className="flex justify-center">
@@ -151,10 +196,22 @@ export function LocationModal() {
             <h2 className="mt-4 text-center text-lg font-bold text-foreground md:text-xl">
               Loja encontrada!
             </h2>
-            <p className="mt-2 text-center text-sm text-foreground">
-              A loja mais próxima fica a <strong className="text-primary">1,6km</strong> de você! Seu pedido chegará
-              entre <strong>30 a 50 minutos</strong>.
-            </p>
+            {autoDetected ? (
+              <p className="mt-2 text-center text-sm text-foreground">
+                Detectamos que você está em{" "}
+                <strong className="text-primary">
+                  {city}
+                  {state ? ` - ${state}` : ""}
+                </strong>
+                . Entregamos em <strong>Angra Dos Reis - RJ</strong> em{" "}
+                <strong>30 a 50 min</strong>.
+              </p>
+            ) : (
+              <p className="mt-2 text-center text-sm text-foreground">
+                A loja mais próxima fica a <strong className="text-primary">1,6km</strong> de você! Seu pedido chegará
+                entre <strong>30 a 50 minutos</strong>.
+              </p>
+            )}
             <div className="mt-5 flex justify-center">
               <button
                 type="button"
