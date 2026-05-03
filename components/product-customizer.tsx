@@ -109,7 +109,6 @@ export function ProductCustomizer({ product }: { product: Product }) {
   const [turbinesSel, setTurbinesSel] = useState<Selection>({})
   const [detail, setDetail] = useState("")
   const [quantity, setQuantity] = useState(1)
-  const [showToast, setShowToast] = useState(false)
   /** Índice da seção aberta (0..3). null = todas fechadas. */
   const [openSection, setOpenSection] = useState<number | null>(0)
 
@@ -199,13 +198,6 @@ export function ProductCustomizer({ product }: { product: Product }) {
     setOpenSection((current) => (current === idx ? null : idx))
   }
 
-  // Auto-hide toast
-  useEffect(() => {
-    if (!showToast) return
-    const t = setTimeout(() => setShowToast(false), 2200)
-    return () => clearTimeout(t)
-  }, [showToast])
-
   const handleAddToCart = () => {
     const selectedOptions = {
       coberturas: selectionToOptions(coberturasSel),
@@ -240,7 +232,7 @@ export function ProductCustomizer({ product }: { product: Product }) {
             selectedOptions,
           })
         }
-        setShowToast(true)
+        setCartOpen(true)
         return
       }
     }
@@ -255,7 +247,7 @@ export function ProductCustomizer({ product }: { product: Product }) {
       observations: obs,
       selectedOptions,
     })
-    setShowToast(true)
+    setCartOpen(true)
   }
 
   return (
@@ -453,26 +445,6 @@ export function ProductCustomizer({ product }: { product: Product }) {
           )}
         </div>
       </div>
-
-      {/* Toast confirmação */}
-      {showToast && (
-        <div className="fixed bottom-24 left-1/2 z-80 -translate-x-1/2 animate-step-in md:bottom-28">
-          <div className="flex items-center gap-2.5 rounded-full bg-success px-5 py-3 text-sm font-bold text-white shadow-2xl">
-            <Check className="h-4 w-4" strokeWidth={3} />
-            Adicionado ao carrinho!
-            <button
-              type="button"
-              onClick={() => {
-                setShowToast(false)
-                setCartOpen(true)
-              }}
-              className="ml-2 rounded-full bg-white/20 px-3 py-0.5 text-xs font-bold transition hover:bg-white/30"
-            >
-              Ver carrinho
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

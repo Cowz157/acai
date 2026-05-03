@@ -197,12 +197,12 @@ export function PaymentStep({
         </span>
       </label>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-col-reverse gap-3 pt-2 md:flex-row">
         <button
           type="button"
           onClick={onBack}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar
@@ -211,7 +211,7 @@ export function PaymentStep({
           type="button"
           onClick={handleSubmit}
           disabled={submitDisabled}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex items-center justify-center gap-2 rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70 md:flex-1"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading

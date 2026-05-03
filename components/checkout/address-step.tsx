@@ -164,11 +164,11 @@ export function AddressStep({
         <ShippingSelector value={shippingMethod} onChange={onShippingChange} />
       </div>
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-col-reverse gap-3 pt-2 md:flex-row">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar
@@ -177,7 +177,7 @@ export function AddressStep({
           type="submit"
           disabled={!isValid}
           className={cn(
-            "flex-1 rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition",
+            "rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition md:flex-1",
             isValid ? "hover:brightness-95" : "cursor-not-allowed opacity-50",
           )}
         >
