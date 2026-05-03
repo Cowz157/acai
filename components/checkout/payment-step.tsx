@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { ArrowLeft, CreditCard, Loader2, Wallet } from "lucide-react"
 import { formatMoneyBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -117,10 +118,14 @@ export function PaymentStep({
   // Sempre força "pix" — outros métodos não estão mais disponíveis no UI
   const initialMethod: PaymentMethod = defaultValues?.method === "pix" ? "pix" : "pix"
   const [method, setMethod] = useState<PaymentMethod>(initialMethod)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const handleSubmit = () => {
+    if (!acceptedTerms) return
     void onSubmit({ method })
   }
+
+  const submitDisabled = loading || !acceptedTerms
 
   return (
     <div className="animate-step-in space-y-5 rounded-2xl border border-border bg-white p-5 shadow-sm md:p-7">
@@ -163,6 +168,35 @@ export function PaymentStep({
         <div className="rounded-lg bg-danger-soft px-3 py-2 text-xs font-semibold text-danger">{errorMessage}</div>
       )}
 
+      {/* Aceite de termos — obrigatório pra finalizar */}
+      <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-muted/40 p-3 text-xs text-foreground md:text-sm">
+        <input
+          type="checkbox"
+          checked={acceptedTerms}
+          onChange={(e) => setAcceptedTerms(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-success"
+        />
+        <span>
+          Li e aceito os{" "}
+          <Link
+            href="/termos-de-uso"
+            target="_blank"
+            className="font-semibold text-primary underline underline-offset-2"
+          >
+            Termos de Uso
+          </Link>{" "}
+          e a{" "}
+          <Link
+            href="/politica-privacidade"
+            target="_blank"
+            className="font-semibold text-primary underline underline-offset-2"
+          >
+            Política de Privacidade
+          </Link>
+          .
+        </span>
+      </label>
+
       <div className="flex gap-3 pt-2">
         <button
           type="button"
@@ -176,7 +210,7 @@ export function PaymentStep({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={submitDisabled}
           className="flex flex-1 items-center justify-center gap-2 rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
