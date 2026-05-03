@@ -7,17 +7,23 @@ import { ArrowLeft } from "lucide-react"
 import { getSavedAddress, saveAddress } from "@/lib/address-store"
 import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
+import type { AddressData, DeliveryData, IdentificationData } from "@/lib/checkout-types"
 import { generateCPF } from "@/lib/cpf"
 import { getShippingOption, type ShippingMethod } from "@/lib/data"
 import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from "@/lib/order-store"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { unmaskDigits } from "@/lib/format"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
+import { AddressStep } from "@/components/checkout/address-step"
 import { ConfirmationStep } from "@/components/checkout/confirmation-step"
-import { DeliveryStep, type DeliveryData } from "@/components/checkout/delivery-step"
+import { IdentificationStep } from "@/components/checkout/identification-step"
 import { OrderSummary } from "@/components/checkout/order-summary"
 import { PaymentStep, type PaymentData } from "@/components/checkout/payment-step"
 import { StepIndicator } from "@/components/checkout/step-indicator"
+import { SiteFooter } from "@/components/site-footer"
+
+/** Internal steps. Indicator: 1, 2, 3 (passo 4 = confirmação, marca todos como done). */
+type InternalStep = 1 | 2 | 3 | 4
 
 export default function CheckoutPage() {
   useAuthSync()
@@ -27,15 +33,15 @@ export default function CheckoutPage() {
   const user = useAuth((s) => s.user)
 
   const [hydrated, setHydrated] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [delivery, setDelivery] = useState<DeliveryData | null>(null)
+  const [step, setStep] = useState<InternalStep>(1)
+  const [identification, setIdentification] = useState<IdentificationData | null>(null)
+  const [address, setAddress] = useState<AddressData | null>(null)
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard")
   const [confirmedOrder, setConfirmedOrder] = useState<SavedOrder | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentAttempt, setPaymentAttempt] = useState(0)
 
-  // Snapshot dos itens no momento da finalização (para Step 3 mesmo após clearCart)
   const finalizedItems = useRef<typeof items>([])
 
   useEffect(() => {
@@ -46,21 +52,38 @@ export default function CheckoutPage() {
   const shippingPrice = getShippingOption(shippingMethod).price
   const total = subtotal + shippingPrice
 
-  // Defaults do step 1: combina (último endereço salvo) + (dados do usuário logado).
-  const deliveryDefaults: Partial<DeliveryData> | undefined = useMemo(() => {
-    if (delivery) return delivery
+  // Defaults dos forms — combina endereço salvo + dados do usuário logado
+  const identificationDefaults: Partial<IdentificationData> | undefined = useMemo(() => {
+    if (identification) return identification
     const saved = hydrated ? getSavedAddress() : null
     const fromUser = user
       ? { fullName: user.name, email: user.email, phone: user.phone }
       : null
     if (!saved && !fromUser) return undefined
-    return { ...(saved ?? {}), ...(fromUser ?? {}) }
-  }, [hydrated, user, delivery])
+    return {
+      fullName: fromUser?.fullName || saved?.fullName,
+      email: fromUser?.email || saved?.email,
+      phone: fromUser?.phone || saved?.phone,
+    }
+  }, [hydrated, user, identification])
 
-  // Redireciona se carrinho vazio ou abaixo do mínimo (apenas antes da confirmação).
-  // Avalia pelo SUBTOTAL (sem frete) — frete não conta pra mínimo.
+  const addressDefaults: Partial<AddressData> | undefined = useMemo(() => {
+    if (address) return address
+    const saved = hydrated ? getSavedAddress() : null
+    if (!saved) return undefined
+    return {
+      cep: saved.cep,
+      street: saved.street,
+      number: saved.number,
+      complement: saved.complement,
+      neighborhood: saved.neighborhood,
+      reference: saved.reference,
+    }
+  }, [hydrated, address])
+
+  // Redireciona se carrinho vazio ou abaixo do mínimo (apenas antes da confirmação)
   useEffect(() => {
-    if (!hydrated || step === 3) return
+    if (!hydrated || step === 4) return
     if (items.length === 0 || subtotal < MIN_ORDER_VALUE) {
       router.replace("/")
     }
@@ -74,10 +97,18 @@ export default function CheckoutPage() {
     )
   }
 
-  const handleDeliverySubmit = (data: DeliveryData) => {
-    setDelivery(data)
-    saveAddress(data)
+  const handleIdentificationSubmit = (data: IdentificationData) => {
+    setIdentification(data)
     setStep(2)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleAddressSubmit = (data: AddressData) => {
+    setAddress(data)
+    if (identification) {
+      saveAddress({ ...identification, ...data })
+    }
+    setStep(3)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -88,7 +119,8 @@ export default function CheckoutPage() {
     gatewayTransactionId: string | null,
     pixExpiresAt: number | null,
   ) => {
-    if (!delivery) return
+    if (!identification || !address) return
+    const delivery: DeliveryData = { ...identification, ...address }
 
     const isPix = paymentData.method === "pix"
     const order: SavedOrder = {
@@ -113,13 +145,13 @@ export default function CheckoutPage() {
     setConfirmedOrder(order)
     saveOrder(order)
     void saveOrderRemote(order, user?.id ?? null)
-    setStep(3)
+    setStep(4)
     clearCart()
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handlePaymentSubmit = async (data: PaymentData) => {
-    if (!delivery) return
+    if (!identification || !address) return
     setPaymentError(null)
     setPaymentAttempt(0)
 
@@ -130,7 +162,6 @@ export default function CheckoutPage() {
 
     setPaymentLoading(true)
     try {
-      // UUID interno do pedido = external_id no Vyat (match direto no webhook)
       const orderInternalId = uuid()
       const produtoLabel =
         items
@@ -141,10 +172,10 @@ export default function CheckoutPage() {
       const pixResponse = await createVyatPixWithRetry(
         {
           valor: total,
-          nome: delivery.fullName,
-          email: delivery.email,
+          nome: identification.fullName,
+          email: identification.email,
           cpf: generateCPF(),
-          telefone: delivery.phone ? unmaskDigits(delivery.phone) : "",
+          telefone: identification.phone ? unmaskDigits(identification.phone) : "",
           produto: `Açaí Tropical — ${produtoLabel}`,
           external_id: orderInternalId,
         },
@@ -172,8 +203,12 @@ export default function CheckoutPage() {
     }
   }
 
+  // Indicator: passo 4 (confirmação) marca tudo como done; senão mostra current
+  const indicatorCurrent = (step <= 3 ? step : 3) as 1 | 2 | 3
+  const indicatorAllDone = step === 4
+
   return (
-    <div className="min-h-screen bg-muted/40 pb-12">
+    <div className="flex min-h-screen flex-col bg-muted/40">
       <div className="bg-primary px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link
@@ -181,7 +216,7 @@ export default function CheckoutPage() {
             className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-white/25"
           >
             <ArrowLeft className="h-4 w-4" />
-            {step < 3 ? "VOLTAR" : "CARDÁPIO"}
+            {step < 4 ? "VOLTAR" : "CARDÁPIO"}
           </Link>
           <span className="font-display text-sm font-bold uppercase tracking-wide text-white md:text-base">
             Finalizar Pedido
@@ -189,10 +224,10 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-2xl space-y-4 px-4">
-        <StepIndicator current={step} />
+      <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 pb-12">
+        <StepIndicator current={indicatorCurrent} allDone={indicatorAllDone} />
 
-        {step !== 3 && items.length > 0 && (
+        {step !== 4 && items.length > 0 && (
           <OrderSummary
             items={items}
             subtotal={subtotal}
@@ -203,19 +238,24 @@ export default function CheckoutPage() {
         )}
 
         {step === 1 && (
-          <DeliveryStep
-            defaultValues={deliveryDefaults}
-            onSubmit={handleDeliverySubmit}
+          <IdentificationStep defaultValues={identificationDefaults} onSubmit={handleIdentificationSubmit} />
+        )}
+
+        {step === 2 && (
+          <AddressStep
+            defaultValues={addressDefaults}
+            onSubmit={handleAddressSubmit}
+            onBack={() => setStep(1)}
             shippingMethod={shippingMethod}
             onShippingChange={setShippingMethod}
           />
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <PaymentStep
             total={total}
             defaultValues={confirmedOrder?.payment}
-            onBack={() => setStep(1)}
+            onBack={() => setStep(2)}
             onSubmit={handlePaymentSubmit}
             loading={paymentLoading}
             attempt={paymentAttempt}
@@ -223,10 +263,12 @@ export default function CheckoutPage() {
           />
         )}
 
-        {step === 3 && confirmedOrder && (
+        {step === 4 && confirmedOrder && (
           <ConfirmationStep order={confirmedOrder} items={finalizedItems.current} />
         )}
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

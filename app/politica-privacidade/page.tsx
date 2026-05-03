@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { SiteFooter } from "@/components/site-footer"
 
 export const metadata = {
   title: "Política de Privacidade — Açaí Tropical",
@@ -8,7 +9,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-muted/40">
+    <main className="flex min-h-screen flex-col bg-muted/40">
       <div className="bg-primary px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link
@@ -24,7 +25,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
         <article className="space-y-6 rounded-2xl border border-border bg-white p-6 text-sm leading-relaxed text-foreground shadow-sm md:p-8 md:text-base">
           <header>
             <h1 className="text-2xl font-bold text-primary md:text-3xl">Política de Privacidade</h1>
@@ -34,7 +35,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">1. Quem somos</h2>
             <p>
-              O <strong>Açaí Tropical</strong> é um delivery de açaí que opera em Angra dos Reis - RJ. Esta política
+              O <strong>Açaí Tropical</strong> é um delivery de açaí que opera em São Paulo - SP. Esta política
               explica como coletamos, usamos e protegemos os dados que você informa ao realizar um pedido.
             </p>
           </section>
@@ -110,6 +111,7 @@ export default function PrivacyPolicyPage() {
           </section>
         </article>
       </div>
+      <SiteFooter />
     </main>
   )
 }

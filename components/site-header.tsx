@@ -1,7 +1,8 @@
 import Image from "next/image"
-import { Bike, Coins, MapPin, Star } from "lucide-react"
+import { Bike, Coins, Star } from "lucide-react"
 import { AccountLink } from "./account-link"
 import { StoreInfoButton } from "./store-info-button"
+import { StoreLocationLine } from "./store-location-line"
 
 export function SiteHeader() {
   return (
@@ -68,10 +69,7 @@ export function SiteHeader() {
           </span>
         </div>
 
-        <div className="mt-1 flex items-center justify-center gap-1.5 text-sm md:text-base">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span>Angra Dos Reis - RJ • 1,6km de você</span>
-        </div>
+        <StoreLocationLine />
 
         <div className="mt-1 flex items-center justify-center gap-1.5 text-sm md:text-base">
           <Star className="h-4 w-4 fill-amber-400 text-amber-400" />

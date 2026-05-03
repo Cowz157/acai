@@ -4,22 +4,24 @@ import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const STEPS = [
-  { id: 1, label: "Entrega" },
-  { id: 2, label: "Pagamento" },
-  { id: 3, label: "Confirmação" },
+  { id: 1, label: "Identificação" },
+  { id: 2, label: "Endereço" },
+  { id: 3, label: "Pagamento" },
 ]
 
 interface StepIndicatorProps {
   current: 1 | 2 | 3
+  /** Quando true, marca todos os passos como concluídos (exibido após pagar). */
+  allDone?: boolean
 }
 
-export function StepIndicator({ current }: StepIndicatorProps) {
+export function StepIndicator({ current, allDone = false }: StepIndicatorProps) {
   return (
     <div className="flex items-start justify-center px-4 py-6">
       <div className="flex w-full max-w-md items-start">
         {STEPS.map((step, idx) => {
-          const isDone = step.id < current
-          const isActive = step.id === current
+          const isDone = allDone || step.id < current
+          const isActive = !allDone && step.id === current
           const isLast = idx === STEPS.length - 1
 
           return (

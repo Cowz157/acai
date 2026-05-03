@@ -1,46 +1,20 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, MapPin } from "lucide-react"
+import { ArrowLeft, Loader2, MapPin } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { fetchCEP } from "@/lib/cep-api"
+import { addressSchema, type AddressData } from "@/lib/checkout-types"
 import { type ShippingMethod } from "@/lib/data"
-import { maskCEP, maskPhone, unmaskDigits } from "@/lib/format"
+import { maskCEP, unmaskDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ShippingSelector } from "./shipping-selector"
 
-export const deliverySchema = z.object({
-  fullName: z.string().min(3, "Informe seu nome completo"),
-  email: z.string().min(1, "Informe seu e-mail").email("E-mail inválido"),
-  phone: z
-    .string()
-    .optional()
-    .refine((v) => {
-      if (!v) return true
-      const digits = unmaskDigits(v)
-      return digits.length === 0 || digits.length === 10 || digits.length === 11
-    }, "WhatsApp inválido"),
-  cep: z
-    .string()
-    .min(1, "Informe o CEP")
-    .refine((v) => unmaskDigits(v).length === 8, "CEP inválido"),
-  street: z.string().min(1, "Informe a rua"),
-  number: z.string().min(1, "Número obrigatório"),
-  complement: z.string().optional().or(z.literal("")),
-  neighborhood: z.string().min(1, "Informe o bairro"),
-  reference: z.string().optional().or(z.literal("")),
-  city: z.string().optional().or(z.literal("")),
-  state: z.string().optional().or(z.literal("")),
-})
-
-export type DeliveryData = z.infer<typeof deliverySchema>
-
-interface DeliveryStepProps {
-  defaultValues?: Partial<DeliveryData>
-  onSubmit: (data: DeliveryData) => void
-  /** Seletor de frete controlado pelo parent (compartilhado com OrderSummary). */
+interface AddressStepProps {
+  defaultValues?: Partial<AddressData>
+  onSubmit: (data: AddressData) => void
+  onBack: () => void
   shippingMethod: ShippingMethod
   onShippingChange: (next: ShippingMethod) => void
 }
@@ -48,19 +22,15 @@ interface DeliveryStepProps {
 interface FieldProps {
   label: string
   required?: boolean
-  hint?: string
   error?: string
   children: React.ReactNode
 }
 
-function Field({ label, required, hint, error, children }: FieldProps) {
+function Field({ label, required, error, children }: FieldProps) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground">
-          {label} {required && <span className="text-danger">*</span>}
-        </span>
-        {hint && <span className="text-[10px] text-muted-foreground/70">{hint}</span>}
+      <span className="mb-1 block text-xs font-semibold text-muted-foreground">
+        {label} {required && <span className="text-danger">*</span>}
       </span>
       {children}
       {error && <span className="mt-1 block text-xs text-danger">{error}</span>}
@@ -71,7 +41,13 @@ function Field({ label, required, hint, error, children }: FieldProps) {
 const inputClass =
   "w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 
-export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippingChange }: DeliveryStepProps) {
+export function AddressStep({
+  defaultValues,
+  onSubmit,
+  onBack,
+  shippingMethod,
+  onShippingChange,
+}: AddressStepProps) {
   const {
     register,
     handleSubmit,
@@ -79,15 +55,14 @@ export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippi
     watch,
     reset,
     formState: { errors, isValid },
-  } = useForm<DeliveryData>({
-    resolver: zodResolver(deliverySchema),
+  } = useForm<AddressData>({
+    resolver: zodResolver(addressSchema),
     mode: "onChange",
     defaultValues: defaultValues ?? {},
   })
 
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
 
-  // Reaplica defaultValues quando vierem assíncronos (ex.: usuário logado)
   useEffect(() => {
     if (defaultValues) reset({ ...defaultValues })
   }, [defaultValues, reset])
@@ -113,7 +88,6 @@ export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippi
     setValue("state", result.uf || "")
   }
 
-  const phoneValue = watch("phone") ?? ""
   const cepValue = watch("cep") ?? ""
 
   return (
@@ -129,31 +103,6 @@ export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippi
       </header>
 
       <div className="grid gap-4">
-        <Field label="Nome completo" required error={errors.fullName?.message}>
-          <input {...register("fullName")} className={inputClass} placeholder="Seu nome completo" autoComplete="name" />
-        </Field>
-
-        <Field label="E-mail" required hint="usado pra mandar o comprovante" error={errors.email?.message}>
-          <input
-            {...register("email")}
-            type="email"
-            className={inputClass}
-            placeholder="seu@email.com"
-            autoComplete="email"
-          />
-        </Field>
-
-        <Field label="WhatsApp" hint="opcional — pra contato em caso de imprevisto" error={errors.phone?.message}>
-          <input
-            value={phoneValue}
-            onChange={(e) => setValue("phone", maskPhone(e.target.value), { shouldValidate: true })}
-            className={inputClass}
-            placeholder="(00) 00000-0000"
-            inputMode="numeric"
-            autoComplete="tel"
-          />
-        </Field>
-
         <Field label="CEP" required error={errors.cep?.message}>
           <div className="relative">
             <input
@@ -179,7 +128,12 @@ export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippi
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2">
             <Field label="Rua" error={errors.street?.message}>
-              <input {...register("street")} className={inputClass} placeholder="Nome da rua" autoComplete="address-line1" />
+              <input
+                {...register("street")}
+                className={inputClass}
+                placeholder="Nome da rua"
+                autoComplete="address-line1"
+              />
             </Field>
           </div>
           <Field label="Número" required error={errors.number?.message}>
@@ -210,16 +164,26 @@ export function DeliveryStep({ defaultValues, onSubmit, shippingMethod, onShippi
         <ShippingSelector value={shippingMethod} onChange={onShippingChange} />
       </div>
 
-      <button
-        type="submit"
-        disabled={!isValid}
-        className={cn(
-          "w-full rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition",
-          isValid ? "hover:brightness-95" : "cursor-not-allowed opacity-50",
-        )}
-      >
-        Continuar para pagamento →
-      </button>
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </button>
+        <button
+          type="submit"
+          disabled={!isValid}
+          className={cn(
+            "flex-1 rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition",
+            isValid ? "hover:brightness-95" : "cursor-not-allowed opacity-50",
+          )}
+        >
+          Continuar para pagamento →
+        </button>
+      </div>
     </form>
   )
 }

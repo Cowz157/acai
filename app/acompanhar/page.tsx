@@ -16,6 +16,7 @@ import {
 import { usePaymentTracking } from "@/lib/payment-tracker"
 import { formatMoneyBR } from "@/lib/format"
 import { AwaitingPixCard } from "@/components/checkout/awaiting-pix-card"
+import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 
 interface StageDef {
@@ -66,10 +67,10 @@ export default function TrackOrderPage() {
   if (!order) return <NoOrderState />
 
   return (
-    <main className="min-h-screen bg-muted/40 pb-12">
+    <main className="flex min-h-screen flex-col bg-muted/40">
       <Header />
 
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
+      <div className="mx-auto w-full max-w-2xl flex-1 space-y-5 px-4 py-6">
         {order.payment.method === "pix" && order.paymentStatus === "pending" && (
           <AwaitingPixSection order={order} onPatch={applyPatch} />
         )}
@@ -88,6 +89,8 @@ export default function TrackOrderPage() {
           </Link>
         </div>
       </div>
+
+      <SiteFooter />
     </main>
   )
 }
@@ -113,9 +116,9 @@ function Header() {
 
 function NoOrderState() {
   return (
-    <main className="min-h-screen bg-muted/40">
+    <main className="flex min-h-screen flex-col bg-muted/40">
       <Header />
-      <div className="mx-auto max-w-3xl px-4 py-12">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-12">
         <div className="rounded-2xl border border-border bg-white p-8 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">
             <ShoppingBag className="h-8 w-8 text-muted-foreground" />
@@ -132,6 +135,7 @@ function NoOrderState() {
           </Link>
         </div>
       </div>
+      <SiteFooter />
     </main>
   )
 }

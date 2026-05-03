@@ -8,6 +8,7 @@ import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { maskPhone, unmaskDigits } from "@/lib/format"
 import { getLastOrder, type SavedOrder } from "@/lib/order-store"
 import { OrderHistory } from "@/components/order-history"
+import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 
 type Mode = "signin" | "signup"
@@ -85,7 +86,7 @@ export default function ContaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-muted/40 pb-12">
+    <main className="flex min-h-screen flex-col bg-muted/40">
       <div className="bg-primary px-4 py-3">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link
@@ -101,7 +102,7 @@ export default function ContaPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 py-8">
+      <div className="mx-auto w-full max-w-md flex-1 px-4 py-8">
         {user ? (
           /* Área logada */
           <div className="space-y-4">
@@ -277,6 +278,8 @@ export default function ContaPage() {
           </div>
         )}
       </div>
+
+      <SiteFooter />
     </main>
   )
 }

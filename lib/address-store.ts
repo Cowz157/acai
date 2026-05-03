@@ -1,6 +1,6 @@
 "use client"
 
-import type { DeliveryData } from "@/components/checkout/delivery-step"
+import type { DeliveryData } from "./checkout-types"
 
 const STORAGE_KEY = "acai-tropical-last-address"
 

@@ -1,7 +1,7 @@
 "use client"
 
 import type { CartItem } from "./cart-store"
-import type { DeliveryData } from "@/components/checkout/delivery-step"
+import type { DeliveryData } from "./checkout-types"
 import type { PaymentData } from "@/components/checkout/payment-step"
 import { getShippingOption, type ShippingMethod } from "./data"
 import { supabase } from "./supabase"

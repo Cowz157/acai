@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { CheckCircle2, Loader2, MapPin } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
+import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
 
 /**
@@ -51,6 +52,8 @@ export function LocationModal() {
         setState(loc.state)
         setStateCode(loc.stateCode ?? null)
         setAutoDetected(true)
+        // Cacheia pra reusar nas faixas/header sem repetir a chamada
+        saveDetectedLocation(loc)
         setStep(4)
       } else {
         // Fallback: pede estado/cidade manualmente

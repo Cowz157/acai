@@ -1,13 +1,14 @@
 import { Fragment } from "react"
-import Link from "next/link"
 import { Heart, Sparkles } from "lucide-react"
 import { ActiveOrderBanner } from "@/components/active-order-banner"
 import { CategoryNav } from "@/components/category-nav"
+import { DeliveryBanner } from "@/components/delivery-banner"
 import { LiveOrderToast } from "@/components/live-order-toast"
 import { LocationModal } from "@/components/location-modal"
 import { ProductCard } from "@/components/product-card"
 import { PromoTimer } from "@/components/promo-timer"
 import { ReviewsWithPhotos } from "@/components/review-with-photo"
+import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { categories, products } from "@/lib/data"
 
@@ -27,16 +28,8 @@ export default function HomePage() {
         <div className="space-y-3">
           <ActiveOrderBanner />
 
-          {/* Faixa Entrega Grátis + linha pequena Express */}
-          <div className="rounded-xl border-2 border-success bg-white px-4 py-3 text-center md:px-5 md:py-4">
-            <p className="text-sm font-medium text-foreground md:text-base">
-              <span className="font-semibold text-success">Entrega Grátis</span> para{" "}
-              <strong>Angra Dos Reis</strong>!
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground md:text-sm">
-              ⚡ Tem pressa? <strong className="text-foreground">Express em 10-20 min</strong> por R$ 4,90
-            </p>
-          </div>
+          {/* Faixa Entrega Grátis + linha pequena Express (cidade dinâmica via IP) */}
+          <DeliveryBanner />
 
           {/* Faixa Promo */}
           <div className="rounded-xl border-2 border-primary bg-white px-4 py-3 text-center text-sm font-medium text-foreground md:text-base">
@@ -120,15 +113,7 @@ export default function HomePage() {
 
       <LiveOrderToast />
 
-      <footer className="bg-primary py-6 pb-24 text-center text-xs text-white/80 md:pb-6">
-        <p>© {new Date().getFullYear()} Açaí Tropical - Todos os direitos reservados</p>
-        <p className="mt-1">Angra dos Reis - RJ</p>
-        <p className="mt-2">
-          <Link href="/politica-privacidade" className="underline underline-offset-2 hover:text-white">
-            Política de Privacidade
-          </Link>
-        </p>
-      </footer>
+      <SiteFooter withCartBarPadding />
     </main>
   )
 }

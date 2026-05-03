@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowLeft, Sparkles } from "lucide-react"
 import { ProductCard } from "@/components/product-card"
+import { SiteFooter } from "@/components/site-footer"
 import { avulsoCategories, products } from "@/lib/data"
 
 export const metadata = {
@@ -16,7 +17,7 @@ export default function AvulsoPage() {
   }))
 
   return (
-    <main className="min-h-screen bg-muted/40 pb-12">
+    <main className="flex min-h-screen flex-col bg-muted/40">
       {/* Header */}
       <div className="bg-primary px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
@@ -33,7 +34,7 @@ export default function AvulsoPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-5">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 pb-12">
         {/* Faixa avisando que combo é melhor */}
         <Link
           href="/#pague-leve"
@@ -73,6 +74,8 @@ export default function AvulsoPage() {
           ))}
         </div>
       </div>
+
+      <SiteFooter />
     </main>
   )
 }
