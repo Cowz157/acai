@@ -25,11 +25,12 @@ export default function ContaPage() {
   const signup = useAuth((s) => s.signup)
   const signout = useAuth((s) => s.signout)
 
-  const [mode, setMode] = useState<Mode>("signin")
+  const [mode, setMode] = useState<Mode>("signup")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [marketingConsent, setMarketingConsent] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [confirmationSent, setConfirmationSent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -62,7 +63,14 @@ export default function ContaPage() {
         setSubmitting(false)
         return
       }
-      const result = await signup({ name, email, phone, password })
+      const result = await signup({
+        name,
+        email,
+        phone,
+        password,
+        marketingConsent,
+        source: "signup",
+      })
       if (!result.ok) {
         setError(result.error)
       } else if (result.needsConfirmation) {
@@ -243,6 +251,20 @@ export default function ContaPage() {
                   required
                 />
               </label>
+
+              {mode === "signup" && (
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-success"
+                  />
+                  <span>
+                    Quero receber promoções, cupons e novidades por e-mail. Posso cancelar quando quiser.
+                  </span>
+                </label>
+              )}
 
               {error && (
                 <div className="rounded-lg bg-danger-soft px-3 py-2 text-xs font-semibold text-danger">{error}</div>

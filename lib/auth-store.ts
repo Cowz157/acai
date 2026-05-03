@@ -16,6 +16,10 @@ interface SignupData {
   email: string
   phone: string
   password: string
+  /** Se o cliente aceitou receber emails de marketing (LGPD). Default: false. */
+  marketingConsent?: boolean
+  /** De onde veio: 'signup' (página /conta), 'post_order' (após finalizar pedido), 'lead_magnet'. */
+  source?: "signup" | "post_order" | "lead_magnet"
 }
 
 interface AuthState {
@@ -36,7 +40,7 @@ export const useAuth = create<AuthState>((set) => ({
   setUser: (user) => set({ user }),
   setInitialized: () => set({ initialized: true }),
 
-  signup: async ({ name, email, phone, password }) => {
+  signup: async ({ name, email, phone, password, marketingConsent = false, source = "signup" }) => {
     set({ loading: true })
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
@@ -57,7 +61,13 @@ export const useAuth = create<AuthState>((set) => ({
 
     if (data.user && data.session) {
       // Sessão criada de imediato (confirmação de e-mail desativada).
-      await upsertProfile(data.user.id, { name: trimmedName, email: normalizedEmail, phone: trimmedPhone })
+      await upsertProfile(data.user.id, {
+        name: trimmedName,
+        email: normalizedEmail,
+        phone: trimmedPhone,
+        marketingConsent,
+        source,
+      })
       set({
         user: { id: data.user.id, name: trimmedName, email: normalizedEmail, phone: trimmedPhone },
         loading: false,
@@ -117,13 +127,21 @@ async function fetchProfile(userId: string): Promise<{ name: string; phone: stri
 
 async function upsertProfile(
   userId: string,
-  profile: { name: string; email: string; phone: string },
+  profile: {
+    name: string
+    email: string
+    phone: string
+    marketingConsent?: boolean
+    source?: string
+  },
 ): Promise<void> {
   await supabase.from("profiles").upsert({
     id: userId,
     name: profile.name,
     email: profile.email,
     phone: profile.phone,
+    marketing_consent: profile.marketingConsent ?? false,
+    source: profile.source ?? "signup",
   })
 }
 

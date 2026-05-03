@@ -3,6 +3,7 @@ import { Heart, Sparkles } from "lucide-react"
 import { ActiveOrderBanner } from "@/components/active-order-banner"
 import { CategoryNav } from "@/components/category-nav"
 import { DeliveryBanner } from "@/components/delivery-banner"
+import { LeadMagnetPopup } from "@/components/lead-magnet-popup"
 import { LiveOrderToast } from "@/components/live-order-toast"
 import { LocationModal } from "@/components/location-modal"
 import { ProductCard } from "@/components/product-card"
@@ -112,6 +113,7 @@ export default function HomePage() {
       </div>
 
       <LiveOrderToast />
+      <LeadMagnetPopup />
 
       <SiteFooter withCartBarPadding />
     </main>

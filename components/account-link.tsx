@@ -10,7 +10,8 @@ export function AccountLink() {
   const initialized = useAuth((s) => s.initialized)
 
   // Antes de hidratar evitamos mostrar nome (evita flash/mismatch SSR).
-  const label = initialized && user ? user.name.split(" ")[0] || "Conta" : "Entrar"
+  // Visitor vê "Criar conta" (call-to-action), logado vê o primeiro nome.
+  const label = initialized && user ? user.name.split(" ")[0] || "Conta" : "Criar conta"
 
   return (
     <Link

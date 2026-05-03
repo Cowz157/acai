@@ -9,6 +9,7 @@ import { formatMoneyBR } from "@/lib/format"
 import { patchSavedOrder, type SavedOrder } from "@/lib/order-store"
 import { usePaymentTracking } from "@/lib/payment-tracker"
 import { AwaitingPixCard } from "./awaiting-pix-card"
+import { PostOrderSignup } from "./post-order-signup"
 
 interface ConfirmationStepProps {
   order: SavedOrder
@@ -173,6 +174,9 @@ export function ConfirmationStep({ order: initialOrder, items }: ConfirmationSte
           </div>
         </div>
       </div>
+
+      {/* Oferta de criar conta com 1 clique (só pra cliente NÃO logado) */}
+      <PostOrderSignup order={order} />
 
       <div className="space-y-3 pb-2">
         <Link
