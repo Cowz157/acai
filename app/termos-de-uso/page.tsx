@@ -48,7 +48,7 @@ export default function TermsOfUsePage() {
               individuais e combos da promoção "Pague 1, Leve 2", com complementos personalizáveis.
             </p>
             <p>
-              <strong>Contato:</strong> matheusfq2008@gmail.com • WhatsApp (11) 98765-4321
+              <strong>Contato:</strong> WhatsApp (11) 98765-4321
             </p>
           </section>
 

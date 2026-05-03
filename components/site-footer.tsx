@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Mail, MessageCircle } from "lucide-react"
+import { MessageCircle } from "lucide-react"
 
 interface SiteFooterProps {
   /** Padding extra no bottom pra acomodar a barra mobile do carrinho. */
@@ -28,13 +28,6 @@ export function SiteFooter({ withCartBarPadding = false }: SiteFooterProps) {
         >
           <MessageCircle className="h-3.5 w-3.5" />
           WhatsApp: (11) 98765-4321
-        </a>
-        <a
-          href="mailto:matheusfq2008@gmail.com"
-          className="inline-flex items-center gap-1.5 underline-offset-2 hover:text-white hover:underline"
-        >
-          <Mail className="h-3.5 w-3.5" />
-          matheusfq2008@gmail.com
         </a>
       </div>
 
