@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase-admin"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,7 +22,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   }
 
   // Confirma que existe e está pendente antes de cancelar
-  const { data: order, error: findErr } = await supabaseAdmin
+  const { data: order, error: findErr } = await getSupabaseAdmin()
     .from("orders")
     .select("id, status")
     .eq("id", id)
@@ -42,7 +42,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     )
   }
 
-  const { error: updateErr } = await supabaseAdmin
+  const { error: updateErr } = await getSupabaseAdmin()
     .from("orders")
     .update({
       status: "cancelled",

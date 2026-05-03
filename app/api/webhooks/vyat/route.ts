@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import crypto from "node:crypto"
-import { supabaseAdmin } from "@/lib/supabase-admin"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
   if (externalId) {
     // Tenta primeiro como UUID interno (caminho novo / preferido)
-    const { data: byId } = await supabaseAdmin
+    const { data: byId } = await getSupabaseAdmin()
       .from("orders")
       .select("id, status")
       .eq("id", externalId)
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Fallback: orders criados antes da Fase 1 do Vyat usavam gateway_transaction_id = transaction_id
     if (!order) {
-      const { data: byGateway } = await supabaseAdmin
+      const { data: byGateway } = await getSupabaseAdmin()
         .from("orders")
         .select("id, status")
         .eq("gateway_transaction_id", externalId)
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
   // Último recurso: tenta vyat_transaction_id (caso external_id tenha sumido por algum motivo)
   if (!order && vyatTxId) {
-    const { data: byVyatId } = await supabaseAdmin
+    const { data: byVyatId } = await getSupabaseAdmin()
       .from("orders")
       .select("id, status")
       .eq("gateway_transaction_id", vyatTxId)
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 6. Atualiza pedido — guarda também o vyat_transaction_id pra referência futura
-  const { error: updateError } = await supabaseAdmin
+  const { error: updateError } = await getSupabaseAdmin()
     .from("orders")
     .update({
       status: newStatus,
