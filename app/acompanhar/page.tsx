@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { ArrowLeft, Bike, Check, ChefHat, Loader2, MapPin, Package, ShoppingBag } from "lucide-react"
 import {
@@ -43,6 +43,23 @@ const STAGE_INDEX: Record<OrderStatus, number> = {
 }
 
 export default function TrackOrderPage() {
+  return (
+    <Suspense fallback={<HydratingState />}>
+      <TrackOrderPageContent />
+    </Suspense>
+  )
+}
+
+function HydratingState() {
+  return (
+    <main className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Carregando seu pedido...
+    </main>
+  )
+}
+
+function TrackOrderPageContent() {
   const [order, setOrder] = useState<SavedOrder | null | undefined>(undefined)
   const [isRemote, setIsRemote] = useState(false)
   const searchParams = useSearchParams()
@@ -69,14 +86,7 @@ export default function TrackOrderPage() {
   usePaymentTracking({ order: order ?? null, onUpdate: applyPatch })
 
   // ainda hidratando
-  if (order === undefined) {
-    return (
-      <main className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Carregando seu pedido...
-      </main>
-    )
-  }
+  if (order === undefined) return <HydratingState />
 
   if (!order) return <NoOrderState />
 
