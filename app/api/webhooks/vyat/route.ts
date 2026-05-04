@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import crypto from "node:crypto"
 import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { sendOrderConfirmationByOrderId } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -147,6 +148,13 @@ export async function POST(request: NextRequest) {
   if (updateError) {
     console.error("[webhook/vyat] erro atualizando pedido:", updateError)
     return NextResponse.json({ error: "DB error" }, { status: 500 })
+  }
+
+  // 7. PIX aprovado → dispara email de confirmação (best-effort, não bloqueia ack)
+  if (newStatus === "approved") {
+    void sendOrderConfirmationByOrderId(order.id).catch((err) => {
+      console.error("[webhook/vyat] envio de email falhou:", err)
+    })
   }
 
   return NextResponse.json({ ok: true, order_id: order.id, status: newStatus })

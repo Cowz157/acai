@@ -139,12 +139,23 @@ export default function CheckoutPage() {
       gatewayTransactionId,
       pix,
       pixExpiresAt,
+      trackingToken: uuid(),
     }
 
     finalizedItems.current = items
     setConfirmedOrder(order)
     saveOrder(order)
     void saveOrderRemote(order, user?.id ?? null)
+    // Email transacional pra cash/card (PIX é enviado pelo webhook ao confirmar pagamento)
+    if (!isPix) {
+      void fetch("/api/orders/send-confirmation-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      }).catch(() => {
+        /* não bloqueia o fluxo */
+      })
+    }
     setStep(4)
     clearCart()
     window.scrollTo({ top: 0, behavior: "smooth" })

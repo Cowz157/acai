@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { ArrowLeft, Bike, Check, ChefHat, Loader2, MapPin, Package, ShoppingBag } from "lucide-react"
 import {
+  fetchOrderByToken,
   getDeliveryAnchor,
   getLastOrder,
   getMinutesRemaining,
@@ -42,14 +44,26 @@ const STAGE_INDEX: Record<OrderStatus, number> = {
 
 export default function TrackOrderPage() {
   const [order, setOrder] = useState<SavedOrder | null | undefined>(undefined)
+  const [isRemote, setIsRemote] = useState(false)
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
 
   useEffect(() => {
+    if (token) {
+      // Acesso via link de email — busca do Supabase
+      void fetchOrderByToken(token).then((remote) => {
+        setOrder(remote)
+        setIsRemote(true)
+      })
+      return
+    }
     setOrder(getLastOrder())
-  }, [])
+  }, [token])
 
   const applyPatch = (patch: Partial<SavedOrder>) => {
     setOrder((prev) => (prev ? { ...prev, ...patch } : prev))
-    patchSavedOrder(patch)
+    // Só patcha localStorage se não for visualização remota (link de email)
+    if (!isRemote) patchSavedOrder(patch)
   }
 
   usePaymentTracking({ order: order ?? null, onUpdate: applyPatch })

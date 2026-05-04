@@ -50,6 +50,8 @@ export interface SavedOrder {
   pix: SavedPix | null
   /** Expiração do PIX em timestamp ms. Permite mostrar countdown e oferecer regerar. */
   pixExpiresAt: number | null
+  /** Token único pra link `/acompanhar?token=xxx` enviado por email. */
+  trackingToken: string | null
 }
 
 /** Proporções de cada etapa em relação ao tempo total do pedido. */
@@ -124,6 +126,7 @@ export function getLastOrder(): SavedOrder | null {
       gatewayTransactionId: parsed.gatewayTransactionId ?? null,
       pix: parsed.pix ?? null,
       pixExpiresAt: parsed.pixExpiresAt ?? null,
+      trackingToken: parsed.trackingToken ?? null,
     }
   } catch {
     return null
@@ -185,6 +188,7 @@ export interface RemoteOrderRow {
   status: PaymentStatus
   paid_at: string | null
   gateway_transaction_id: string | null
+  tracking_token: string | null
   created_at: string
   eta_minutes: number
   items: CartItem[]
@@ -209,6 +213,7 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       status: order.paymentStatus,
       paid_at: order.paidAt ? new Date(order.paidAt).toISOString() : null,
       gateway_transaction_id: order.gatewayTransactionId,
+      tracking_token: order.trackingToken,
       created_at: new Date(order.createdAt).toISOString(),
       eta_minutes: order.etaMinutes,
       items: order.items,
@@ -282,6 +287,51 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
       gatewayTransactionId: row.gateway_transaction_id,
       pix: null,
       pixExpiresAt: null,
+      trackingToken: row.tracking_token,
     }
   })
+}
+
+/**
+ * Busca um pedido pelo `tracking_token` (link de email). Server-side via API,
+ * pois `tracking_token` não está na policy RLS do client. Retorna o pedido
+ * normalizado pra mesma forma de `SavedOrder`.
+ */
+export async function fetchOrderByToken(token: string): Promise<SavedOrder | null> {
+  try {
+    const res = await fetch(`/api/orders/by-token?token=${encodeURIComponent(token)}`)
+    if (!res.ok) return null
+    const { order } = (await res.json()) as { order: RemoteOrderRow }
+    if (!order) return null
+
+    const deliveryWithExtras = order.delivery as DeliveryData & {
+      shipping?: SavedShipping
+      subtotal?: number
+    }
+    const total = Number(order.total)
+    const shipping: SavedShipping = deliveryWithExtras.shipping ?? { method: "standard", price: 0 }
+    const { shipping: _s, subtotal: extraSub, ...delivery } = deliveryWithExtras
+
+    return {
+      id: order.id,
+      orderId: order.order_number,
+      createdAt: new Date(order.created_at).getTime(),
+      etaMinutes: order.eta_minutes,
+      items: order.items,
+      subtotal: extraSub ?? Math.max(0, total - shipping.price),
+      total,
+      delivery,
+      payment: order.payment,
+      shipping,
+      paymentStatus: order.status,
+      paidAt: order.paid_at ? new Date(order.paid_at).getTime() : null,
+      gatewayTransactionId: order.gateway_transaction_id,
+      pix: null,
+      pixExpiresAt: null,
+      trackingToken: order.tracking_token,
+    }
+  } catch (err) {
+    console.error("[order-store] fetchOrderByToken exception:", err)
+    return null
+  }
 }

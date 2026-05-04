@@ -82,7 +82,11 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-bold text-foreground">6. Seus direitos</h2>
             <p>
               Você pode solicitar acesso, correção ou exclusão dos seus dados, conforme a Lei Geral de Proteção de
-              Dados (LGPD - Lei 13.709/2018), entrando em contato pelo nosso WhatsApp ou Instagram.
+              Dados (LGPD - Lei 13.709/2018), entrando em contato pelo email{" "}
+              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
+                contato@anoteii.shop
+              </a>{" "}
+              ou pelo WhatsApp.
             </p>
           </section>
 
@@ -97,16 +101,11 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">8. Contato</h2>
             <p>
-              Em caso de dúvidas sobre esta política, entre em contato pelo nosso Instagram{" "}
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary underline"
-              >
-                @acaidocentro
-              </a>
-              .
+              Em caso de dúvidas sobre esta política, entre em contato pelo email{" "}
+              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
+                contato@anoteii.shop
+              </a>{" "}
+              ou pelo WhatsApp (11) 98765-4321.
             </p>
           </section>
         </article>

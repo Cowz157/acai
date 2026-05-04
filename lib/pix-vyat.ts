@@ -9,6 +9,8 @@
  * Tipos espelham `src/lib/api/types.ts` da Vyat (publicação npm pendente).
  */
 
+import { getStoredUtms, type Utms } from "./utms"
+
 // As chamadas vão pelo proxy local (/api/vyat/*) — server-to-server pra evitar CORS
 // e centralizar a key. Os endpoints upstream são `/v1/pix/criar` e `/v1/pix/status`
 // no `NEXT_PUBLIC_VYAT_BASE_URL`, mas o cliente nunca fala direto com eles.
@@ -74,14 +76,6 @@ export interface VyatStatusResponse {
   product_name: string
 }
 
-interface UTMs {
-  utm_source: string
-  utm_medium: string
-  utm_campaign: string
-  utm_content: string
-  utm_term: string
-}
-
 // =====================================================================
 // VyatError
 // =====================================================================
@@ -104,31 +98,8 @@ export class VyatError extends Error {
 // Helpers internos
 // =====================================================================
 
-function captureUTMs(): UTMs {
-  if (typeof window === "undefined") {
-    return { utm_source: "", utm_medium: "", utm_campaign: "", utm_content: "", utm_term: "" }
-  }
-  const w = window as unknown as { getVyatUTMs?: () => Partial<UTMs> }
-  if (typeof w.getVyatUTMs === "function") {
-    const tracked = w.getVyatUTMs()
-    if (tracked && Object.keys(tracked).length > 0) {
-      return {
-        utm_source: tracked.utm_source ?? "",
-        utm_medium: tracked.utm_medium ?? "",
-        utm_campaign: tracked.utm_campaign ?? "",
-        utm_content: tracked.utm_content ?? "",
-        utm_term: tracked.utm_term ?? "",
-      }
-    }
-  }
-  const params = new URLSearchParams(window.location.search)
-  return {
-    utm_source: params.get("utm_source") ?? "",
-    utm_medium: params.get("utm_medium") ?? "",
-    utm_campaign: params.get("utm_campaign") ?? "",
-    utm_content: params.get("utm_content") ?? "",
-    utm_term: params.get("utm_term") ?? "",
-  }
+function captureUTMs(): Utms {
+  return getStoredUtms()
 }
 
 function sleep(ms: number): Promise<void> {
