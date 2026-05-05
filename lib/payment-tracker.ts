@@ -37,6 +37,7 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
   const startedAt = useRef<number>(Date.now())
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
+  const emailDispatchedRef = useRef<string | null>(null)
 
   useEffect(() => {
     startedAt.current = Date.now()
@@ -65,6 +66,15 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
           paymentStatus: newStatus,
           paidAt: newStatus === "approved" ? Date.now() : order.paidAt,
         })
+
+        if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
+          emailDispatchedRef.current = order.id
+          void fetch("/api/orders/send-confirmation-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: order.id }),
+          }).catch(() => {})
+        }
       } catch {
         // erro silencioso — próxima tentativa cobre
       }

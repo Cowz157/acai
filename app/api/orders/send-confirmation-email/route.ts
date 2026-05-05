@@ -10,8 +10,8 @@ interface SendBody {
 
 /**
  * Carrega pedido do Supabase e dispara email de confirmação via Resend.
- * Chamado pelo checkout no client (cash/card). Para PIX, o webhook do Vyat
- * dispara direto via `sendOrderConfirmationByOrderId`.
+ * Chamado pelo checkout no client (cash/card) e pelo polling em /acompanhar
+ * quando PIX é aprovado.
  */
 export async function POST(request: NextRequest) {
   let body: SendBody
