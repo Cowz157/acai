@@ -197,10 +197,25 @@ export async function fetchVyatPixStatus(transactionId: string): Promise<VyatSta
   return (await res.json()) as VyatStatusResponse
 }
 
-/** Resolve a URL ou base64 do QR code para uso direto em <img>. */
+/**
+ * Resolve a URL ou base64 do QR code para uso direto em <img>.
+ *
+ * Trata um bug observado em alguns gateways que retornam `qrcode_url` com prefixo
+ * `data:image/png;base64,` mas conteúdo sendo a string EMV do PIX (que começa com
+ * `00020101...`). Nesse caso retorna `null` pra que o cliente gere o QR localmente
+ * a partir do `codigo_pix` via lib `qrcode`.
+ */
 export function pixImageSrc(qrcodeUrl: string | null | undefined): string | null {
   if (!qrcodeUrl) return null
-  if (qrcodeUrl.startsWith("data:") || qrcodeUrl.startsWith("http")) return qrcodeUrl
+  if (qrcodeUrl.startsWith("http")) return qrcodeUrl
+  if (qrcodeUrl.startsWith("data:")) {
+    const commaIdx = qrcodeUrl.indexOf(",")
+    if (commaIdx === -1) return null
+    const payload = qrcodeUrl.slice(commaIdx + 1).trimStart()
+    // EMV PIX começa com "00020101" — gateway empacotou EMV num data: URL ao invés de PNG/SVG real
+    if (payload.startsWith("00020101")) return null
+    return qrcodeUrl
+  }
   if (/^[A-Za-z0-9+/=\s]+$/.test(qrcodeUrl) && qrcodeUrl.length > 80) {
     return `data:image/png;base64,${qrcodeUrl.replace(/\s+/g, "")}`
   }
