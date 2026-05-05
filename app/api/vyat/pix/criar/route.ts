@@ -7,6 +7,14 @@ const VYAT_KEY = process.env.NEXT_PUBLIC_VYAT_KEY ?? ""
 const VYAT_BASE = process.env.NEXT_PUBLIC_VYAT_BASE_URL ?? "https://api.vyat.app"
 
 /**
+ * UA de browser real pra reduzir falsos positivos do Cloudflare Managed Challenge
+ * em chamadas server-to-server. Workaround temporário até a config Cloudflare da
+ * Vyat ser ajustada (Custom Rule Skip + diagnose via Security Events).
+ */
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+/**
  * Proxy server-side pra POST /v1/pix/criar do Vyat.
  * Resolve CORS (browser → server local → Vyat) e centraliza a key no servidor.
  *
@@ -30,7 +38,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "User-Agent": BROWSER_UA,
+  }
   const idempotencyKey = request.headers.get("idempotency-key")
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey
 
