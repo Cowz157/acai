@@ -4,11 +4,12 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import QRCode from "qrcode"
-import { Clock, Copy, Loader2, RefreshCw, X } from "lucide-react"
+import { CheckCircle2, Clock, Copy, Loader2, RefreshCw, X } from "lucide-react"
 import { generateCPF } from "@/lib/cpf"
 import { formatMoneyBR, unmaskDigits } from "@/lib/format"
 import { cancelOrder, type SavedOrder } from "@/lib/order-store"
-import { createVyatPixWithRetry, describeVyatError, pixImageSrc } from "@/lib/pix-vyat"
+import { mapVyatStatus } from "@/lib/payment-tracker"
+import { createVyatPixWithRetry, describeVyatError, fetchVyatPixStatus } from "@/lib/pix-vyat"
 import { uuid } from "@/lib/uuid"
 
 interface AwaitingPixCardProps {
@@ -36,6 +37,8 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
+  const [checkResult, setCheckResult] = useState<"pending" | "error" | null>(null)
 
   const copyText = order.pix?.codigoPix ?? ""
   const expiresAt = order.pixExpiresAt
@@ -47,14 +50,11 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
     return () => clearInterval(interval)
   }, [])
 
-  // Resolve a fonte do QR: 1º tenta qrcode_url do gateway; 2º gera localmente da copia-cola
+  // Sempre gera o QR localmente a partir do código copia-cola.
+  // O qrcode_url do gateway pode vir como página HTML (fyhub.com.br/qr/...) ou
+  // EMV disfarçado de data:image — nunca confia nele, gera local da string EMV.
   useEffect(() => {
     let cancelled = false
-    const fromGateway = order.pix?.qrCodeUrl ? pixImageSrc(order.pix.qrCodeUrl) : null
-    if (fromGateway) {
-      setQrSrc(fromGateway)
-      return
-    }
     if (!order.pix?.codigoPix) {
       setQrSrc(null)
       return
@@ -67,13 +67,14 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
       .then((url) => {
         if (!cancelled) setQrSrc(url)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[awaiting-pix-card] erro gerando QR Code:", err)
         if (!cancelled) setQrSrc(null)
       })
     return () => {
       cancelled = true
     }
-  }, [order.pix?.qrCodeUrl, order.pix?.codigoPix])
+  }, [order.pix?.codigoPix])
 
   const handleCopy = async () => {
     if (!copyText) return
@@ -83,6 +84,30 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
       setTimeout(() => setCopied(false), 2000)
     } catch {
       /* noop */
+    }
+  }
+
+  const handleAlreadyPaid = async () => {
+    if (!order.gatewayTransactionId) return
+    setCheckingPayment(true)
+    setCheckResult(null)
+    try {
+      const remote = await fetchVyatPixStatus(order.gatewayTransactionId)
+      const newStatus = mapVyatStatus(remote.status)
+      if (newStatus !== order.paymentStatus) {
+        onRegenerated({
+          paymentStatus: newStatus,
+          paidAt: newStatus === "approved" ? Date.now() : order.paidAt,
+        })
+      } else {
+        // Status não mudou — gateway ainda processando o pagamento
+        setCheckResult("pending")
+      }
+    } catch (err) {
+      console.error("[awaiting-pix-card] erro verificando pagamento:", err)
+      setCheckResult("error")
+    } finally {
+      setCheckingPayment(false)
     }
   }
 
@@ -266,6 +291,37 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
       <p className="text-center text-[11px] text-muted-foreground">
         Esta página atualiza automaticamente quando o pagamento for confirmado.
       </p>
+
+      {/* Botão "Já paguei?" — força checagem imediata em vez de esperar próximo polling */}
+      <button
+        type="button"
+        onClick={handleAlreadyPaid}
+        disabled={checkingPayment}
+        className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-success bg-success-soft px-5 py-2.5 text-sm font-bold text-success transition hover:bg-success-soft/70 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {checkingPayment ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Verificando...
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="h-4 w-4" />
+            Já paguei, verificar agora
+          </>
+        )}
+      </button>
+
+      {checkResult === "pending" && (
+        <p className="-mt-2 text-center text-[11px] font-semibold text-yellow-700">
+          Pagamento ainda não foi confirmado. Aguarde uns segundos e tente de novo.
+        </p>
+      )}
+      {checkResult === "error" && (
+        <p className="-mt-2 text-center text-[11px] font-semibold text-danger">
+          Falha ao verificar. Tente de novo em instantes.
+        </p>
+      )}
 
       {/* Cancelar pedido (visível só enquanto pendente) */}
       <div className="border-t border-border pt-3">{cancelBlock}</div>

@@ -9,7 +9,7 @@ const POLL_INTERVAL_MS = 5000
 const POLL_TIMEOUT_MS = 60 * 60 * 1000
 
 /** Mapeia status vindo do Vyat (`/pix/status`) para nosso PaymentStatus interno. */
-function mapVyatStatus(status: string): PaymentStatus {
+export function mapVyatStatus(status: string): PaymentStatus {
   switch (status) {
     case "approved":
       return "approved"
