@@ -3,7 +3,6 @@ import { Heart, Sparkles } from "lucide-react"
 import { ActiveOrderBanner } from "@/components/active-order-banner"
 import { CategoryNav } from "@/components/category-nav"
 import { DeliveryBanner } from "@/components/delivery-banner"
-import { LeadMagnetPopup } from "@/components/lead-magnet-popup"
 import { LiveOrderToast } from "@/components/live-order-toast"
 import { LocationModal } from "@/components/location-modal"
 import { ProductCard } from "@/components/product-card"
@@ -90,8 +89,10 @@ export default function HomePage() {
                   </div>
 
                   {isPagueLeve && lastItem && (
-                    <div className="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-2">
-                      <PromoTimer />
+                    <div className="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="lg:col-span-2">
+                        <PromoTimer />
+                      </div>
                       <ProductCard product={lastItem} />
                     </div>
                   )}
@@ -113,7 +114,6 @@ export default function HomePage() {
       </div>
 
       <LiveOrderToast />
-      <LeadMagnetPopup />
 
       <SiteFooter withCartBarPadding />
     </main>

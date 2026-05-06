@@ -41,8 +41,14 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      <div className={cn("flex gap-3", isBest && "pt-7", hasExtras ? "items-start" : "items-center")}>
-        <div className="min-w-0 flex-1">
+      <div
+        className={cn(
+          "flex gap-3 lg:flex-col lg:gap-4",
+          isBest && "pt-7",
+          hasExtras ? "items-start lg:items-stretch" : "items-center lg:items-stretch",
+        )}
+      >
+        <div className="min-w-0 flex-1 lg:order-2">
           <h3 className="text-sm font-bold leading-snug text-foreground md:text-base">{product.name}</h3>
           {!isAddon && product.freebies > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">{product.freebies} Complementos Grátis</p>
@@ -108,7 +114,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div
           className={cn(
-            "relative shrink-0",
+            "relative shrink-0 lg:order-1 lg:h-56 lg:w-full lg:self-stretch",
             hasExtras ? "h-24 w-24 self-start md:h-28 md:w-28" : "h-28 w-28 md:h-32 md:w-32",
           )}
         >
@@ -117,7 +123,7 @@ export function ProductCard({ product }: { product: Product }) {
             alt={product.name}
             fill
             className="object-contain"
-            sizes="(max-width: 768px) 112px, 128px"
+            sizes="(max-width: 768px) 112px, (max-width: 1024px) 128px, 360px"
           />
         </div>
       </div>
