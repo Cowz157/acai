@@ -40,6 +40,13 @@ export default function RootLayout({
           data-utmify-prevent-subids=""
           strategy="afterInteractive"
         />
+        <Script id="utmify-google-pixel-config" strategy="afterInteractive">
+          {`window.googlePixelId = "69fab9b29f2c3e8e7db38c86";`}
+        </Script>
+        <Script
+          src="https://cdn.utmify.com.br/scripts/pixel/pixel-google.js"
+          strategy="afterInteractive"
+        />
       </head>
       <body className="font-sans antialiased">
         <UtmsCapture />
