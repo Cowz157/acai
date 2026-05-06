@@ -203,7 +203,9 @@ export default function CheckoutPage() {
           qrCodeUrl: pixResponse.qrcode_url ?? null,
           codigoPix: pixResponse.codigo_pix ?? null,
         },
-        pixResponse.transaction_id ?? orderInternalId,
+        // Polling de status precisa do vyat_transaction_id (UUID interno estável do Vyat).
+        // Consultar por transaction_id (eco do nosso external_id) retorna 404.
+        pixResponse.vyat_transaction_id ?? pixResponse.transaction_id ?? orderInternalId,
         expiresAtMs,
       )
     } catch (err) {

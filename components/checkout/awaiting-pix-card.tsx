@@ -150,7 +150,9 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
       )
 
       onRegenerated({
-        gatewayTransactionId: pixResponse.transaction_id ?? newExternalId,
+        // Mesmo motivo do checkout: polling precisa do vyat_transaction_id, não do eco.
+        gatewayTransactionId:
+          pixResponse.vyat_transaction_id ?? pixResponse.transaction_id ?? newExternalId,
         pix: {
           qrCodeUrl: pixResponse.qrcode_url ?? null,
           codigoPix: pixResponse.codigo_pix ?? null,
