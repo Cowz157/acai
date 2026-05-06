@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
     <Link
       href={`/produto/${product.slug}`}
       className={cn(
-        "group relative block rounded-xl bg-white p-3 transition hover:shadow-md",
+        "group relative block rounded-xl bg-white p-3 transition hover:shadow-md lg:p-4 lg:duration-300 lg:hover:-translate-y-1 lg:hover:shadow-xl",
         isBest ? "animate-best-seller-pulse border-[3px] border-success" : "border border-border",
       )}
     >
@@ -49,7 +49,7 @@ export function ProductCard({ product }: { product: Product }) {
         )}
       >
         <div className="min-w-0 flex-1 lg:order-2">
-          <h3 className="text-sm font-bold leading-snug text-foreground md:text-base">{product.name}</h3>
+          <h3 className="text-sm font-bold leading-snug text-foreground md:text-base lg:text-lg">{product.name}</h3>
           {!isAddon && product.freebies > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">{product.freebies} Complementos Grátis</p>
           )}
@@ -67,7 +67,7 @@ export function ProductCard({ product }: { product: Product }) {
               <div className="text-xs text-muted-foreground">por</div>
               <div
                 className={cn(
-                  "inline-block text-base font-extrabold md:text-lg",
+                  "inline-block text-base font-extrabold md:text-lg lg:text-2xl",
                   isBest ? "rounded-md bg-success px-2 py-0.5 text-white" : "text-success",
                 )}
               >
@@ -77,7 +77,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <div
               className={cn(
-                "mt-2 inline-block text-base font-extrabold md:text-lg",
+                "mt-2 inline-block text-base font-extrabold md:text-lg lg:text-2xl",
                 isBest ? "rounded-md bg-success px-2 py-0.5 text-white" : "text-success",
               )}
             >
@@ -114,7 +114,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div
           className={cn(
-            "relative shrink-0 lg:order-1 lg:h-56 lg:w-full lg:self-stretch",
+            "relative shrink-0 lg:order-1 lg:h-56 lg:w-full lg:self-stretch lg:overflow-hidden lg:rounded-lg",
             hasExtras ? "h-24 w-24 self-start md:h-28 md:w-28" : "h-28 w-28 md:h-32 md:w-32",
           )}
         >
@@ -122,7 +122,7 @@ export function ProductCard({ product }: { product: Product }) {
             src={product.image || "/placeholder.svg"}
             alt={product.name}
             fill
-            className="object-contain"
+            className="object-contain transition-transform duration-300 lg:group-hover:scale-105"
             sizes="(max-width: 768px) 112px, (max-width: 1024px) 128px, 360px"
           />
         </div>

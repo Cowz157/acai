@@ -1,4 +1,3 @@
-import Image from "next/image"
 import { Star } from "lucide-react"
 import { photoReviews } from "@/lib/data"
 
@@ -23,29 +22,18 @@ export function ReviewsWithPhotos() {
         {photoReviews.map((review, idx) => (
           <div
             key={`${review.name}-${idx}`}
-            className="flex items-start justify-between gap-3 border-b border-border py-4"
+            className="border-b border-border py-4"
           >
-            <div className="min-w-0 flex-1">
-              <div className="font-bold text-foreground">{review.name}</div>
-              <div className="mt-0.5 flex items-center gap-1 text-sm">
-                <span className="font-semibold text-amber-500">5,0</span>
-                <div className="flex">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
+            <div className="font-bold text-foreground">{review.name}</div>
+            <div className="mt-0.5 flex items-center gap-1 text-sm">
+              <span className="font-semibold text-amber-500">5,0</span>
+              <div className="flex">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                ))}
               </div>
-              <p className="mt-1 text-sm leading-snug text-muted-foreground">{review.text}</p>
             </div>
-            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-              <Image
-                src={review.photo || "/placeholder.svg"}
-                alt={`Foto enviada por ${review.name}`}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            </div>
+            <p className="mt-1 text-sm leading-snug text-muted-foreground">{review.text}</p>
           </div>
         ))}
       </div>
