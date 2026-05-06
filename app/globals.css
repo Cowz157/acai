@@ -143,6 +143,14 @@
   html {
     scroll-behavior: smooth;
   }
+  /* Garante que TODOS os placeholders de input/textarea sejam visíveis com a
+     mesma cor consistente. Sem isso, alguns browsers/temas renderizam o
+     placeholder transparente ou quase invisível em certos inputs. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.7;
+  }
 }
 
 /* Hide scrollbar for category nav */

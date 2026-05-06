@@ -38,6 +38,12 @@ export function ConfirmationStep({ order: initialOrder, items }: ConfirmationSte
   const isPaid = order.paymentStatus === "approved"
   const isRefused = order.paymentStatus === "refused"
 
+  // Pré-carrega /acompanhar assim que entra na confirmação — transição instantânea
+  // tanto pelo auto-redirect (PIX aprovado) quanto pelo botão manual
+  useEffect(() => {
+    router.prefetch("/acompanhar")
+  }, [router])
+
   // Auto-redireciona pra /acompanhar 3s depois de confirmar pagamento PIX
   useEffect(() => {
     if (!isPix || !isPaid) return
