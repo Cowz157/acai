@@ -68,11 +68,15 @@ function TrackOrderPageContent() {
   useEffect(() => {
     if (token) {
       // Acesso via link de email — busca do Supabase
+      let cancelled = false
       void fetchOrderByToken(token).then((remote) => {
+        if (cancelled) return
         setOrder(remote)
         setIsRemote(true)
       })
-      return
+      return () => {
+        cancelled = true
+      }
     }
     setOrder(getLastOrder())
   }, [token])

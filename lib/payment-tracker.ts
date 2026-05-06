@@ -73,10 +73,12 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ orderId: order.id }),
-          }).catch(() => {})
+          }).catch((err) => {
+            console.error("[payment-tracker] falha ao enviar email de confirmação:", err)
+          })
         }
-      } catch {
-        // erro silencioso — próxima tentativa cobre
+      } catch (err) {
+        console.error("[payment-tracker] erro polling status PIX:", err)
       }
     }
 

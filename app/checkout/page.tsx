@@ -146,14 +146,14 @@ export default function CheckoutPage() {
     setConfirmedOrder(order)
     saveOrder(order)
     void saveOrderRemote(order, user?.id ?? null)
-    // Email transacional pra cash/card (PIX é enviado pelo webhook ao confirmar pagamento)
+    // Email transacional pra cash/card (PIX é disparado pelo polling em /acompanhar quando aprovado)
     if (!isPix) {
       void fetch("/api/orders/send-confirmation-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id }),
-      }).catch(() => {
-        /* não bloqueia o fluxo */
+      }).catch((err) => {
+        console.error("[checkout] falha ao enviar email de confirmação:", err)
       })
     }
     setStep(4)

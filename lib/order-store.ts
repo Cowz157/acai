@@ -195,6 +195,9 @@ export interface RemoteOrderRow {
   total: number
   delivery: DeliveryData
   payment: PaymentData
+  pix_qrcode_url: string | null
+  pix_codigo: string | null
+  pix_expires_at: string | null
 }
 
 /**
@@ -220,6 +223,9 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       total: order.total,
       delivery: { ...order.delivery, shipping: order.shipping, subtotal: order.subtotal },
       payment: order.payment,
+      pix_qrcode_url: order.pix?.qrCodeUrl ?? null,
+      pix_codigo: order.pix?.codigoPix ?? null,
+      pix_expires_at: order.pixExpiresAt ? new Date(order.pixExpiresAt).toISOString() : null,
     })
     if (error) {
       console.error("[order-store] saveOrderRemote falhou:", error.message)
@@ -271,6 +277,10 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
     const total = Number(row.total)
     const shipping: SavedShipping = deliveryWithExtras.shipping ?? { method: "standard", price: 0 }
     const { shipping: _s, subtotal: extraSub, ...delivery } = deliveryWithExtras
+    const pix: SavedPix | null =
+      row.pix_qrcode_url || row.pix_codigo
+        ? { qrCodeUrl: row.pix_qrcode_url, codigoPix: row.pix_codigo }
+        : null
     return {
       id: row.id,
       orderId: row.order_number,
@@ -285,8 +295,8 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
       paymentStatus: row.status,
       paidAt: row.paid_at ? new Date(row.paid_at).getTime() : null,
       gatewayTransactionId: row.gateway_transaction_id,
-      pix: null,
-      pixExpiresAt: null,
+      pix,
+      pixExpiresAt: row.pix_expires_at ? new Date(row.pix_expires_at).getTime() : null,
       trackingToken: row.tracking_token,
     }
   })
@@ -311,6 +321,10 @@ export async function fetchOrderByToken(token: string): Promise<SavedOrder | nul
     const total = Number(order.total)
     const shipping: SavedShipping = deliveryWithExtras.shipping ?? { method: "standard", price: 0 }
     const { shipping: _s, subtotal: extraSub, ...delivery } = deliveryWithExtras
+    const pix: SavedPix | null =
+      order.pix_qrcode_url || order.pix_codigo
+        ? { qrCodeUrl: order.pix_qrcode_url, codigoPix: order.pix_codigo }
+        : null
 
     return {
       id: order.id,
@@ -326,8 +340,8 @@ export async function fetchOrderByToken(token: string): Promise<SavedOrder | nul
       paymentStatus: order.status,
       paidAt: order.paid_at ? new Date(order.paid_at).getTime() : null,
       gatewayTransactionId: order.gateway_transaction_id,
-      pix: null,
-      pixExpiresAt: null,
+      pix,
+      pixExpiresAt: order.pix_expires_at ? new Date(order.pix_expires_at).getTime() : null,
       trackingToken: order.tracking_token,
     }
   } catch (err) {
