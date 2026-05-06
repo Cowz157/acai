@@ -201,15 +201,21 @@ export interface RemoteOrderRow {
 }
 
 /**
- * Envia o pedido pro Supabase. Tolera falhas (logado ou não, online ou não).
- * O localStorage continua sendo a fonte de verdade pro /acompanhar.
+ * Envia o pedido pro Supabase via rota server-side. Tolera falhas (logado ou
+ * não, online ou não). O localStorage continua sendo a fonte de verdade pro
+ * /acompanhar.
+ *
+ * Vai por /api/orders/create (same-origin) em vez de chamar supabase-js direto
+ * porque INSERTs do client pra *.supabase.co são bloqueados por extensões
+ * agressivas (Brave Shields, uBlock, corporate firewalls). A rota same-origin
+ * roda no servidor Railway, sem essas restrições.
  *
  * Como a tabela `orders` não tem coluna dedicada pra shipping, embarcamos os
- * dados dentro do JSONB `delivery` (campo `shipping`). Sem migration extra.
+ * dados dentro do JSONB `delivery` (campo `shipping`).
  */
 export async function saveOrderRemote(order: SavedOrder, userId: string | null): Promise<void> {
   try {
-    const { error } = await supabase.from("orders").insert({
+    const payload = {
       id: order.id,
       order_number: order.orderId,
       user_id: userId,
@@ -226,9 +232,17 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       pix_qrcode_url: order.pix?.qrCodeUrl ?? null,
       pix_codigo: order.pix?.codigoPix ?? null,
       pix_expires_at: order.pixExpiresAt ? new Date(order.pixExpiresAt).toISOString() : null,
+    }
+
+    const res = await fetch("/api/orders/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     })
-    if (error) {
-      console.error("[order-store] saveOrderRemote falhou:", error.message)
+
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      console.error("[order-store] saveOrderRemote falhou:", data.error ?? res.statusText)
     }
   } catch (err) {
     console.error("[order-store] saveOrderRemote exception:", err)
