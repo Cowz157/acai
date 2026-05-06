@@ -229,6 +229,229 @@ interface OrderEmailRow {
   }
 }
 
+// =====================================================================
+// Templates — Recuperação de PIX abandonado
+// =====================================================================
+
+interface PixNudgeContext {
+  orderNumber: string
+  customerName: string
+  trackingToken: string
+  items: CartItem[]
+  total: number
+  codigoPix: string
+  expiresAtMs: number
+}
+
+function pixNudgeTemplate(ctx: PixNudgeContext): { subject: string; html: string; text: string } {
+  const subject = `Seu açaí ainda tá esperando 💜 Pedido #${ctx.orderNumber}`
+  const trackUrl = `${SITE_URL}/acompanhar?token=${encodeURIComponent(ctx.trackingToken)}`
+  const minutesLeft = Math.max(0, Math.floor((ctx.expiresAtMs - Date.now()) / 60000))
+
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])}! 💜</h2>
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Notei que você gerou um PIX e ainda não chegou a pagar. Seu pedido <strong>#${ctx.orderNumber}</strong> ainda está aqui!
+    </p>
+
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <p style="margin: 0; color: #92400e; font-size: 14px;">
+        ⏱ ${minutesLeft > 0 ? `Você tem ~${minutesLeft} minutos pra pagar antes do PIX expirar.` : "Seu PIX está prestes a expirar — pague agora ou gere um novo."}
+      </p>
+    </div>
+
+    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
+    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px;">
+      ${escapeHtml(ctx.codigoPix)}
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${trackUrl}" style="display: inline-block; background-color: #4a0e5c; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
+        Voltar e finalizar pedido →
+      </a>
+    </div>
+
+    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 16px;">Resumo</h3>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 14px;">
+      ${renderItemsList(ctx.items)}
+      <tr>
+        <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; font-weight: bold; color: #1a1a1a;">Total</td>
+        <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; text-align: right; font-weight: 800; color: #16a34a; font-size: 18px;">${formatMoney(ctx.total)}</td>
+      </tr>
+    </table>
+  `
+
+  const text = `Olá, ${ctx.customerName.split(" ")[0]}!
+
+Notei que você gerou um PIX e ainda não chegou a pagar. Pedido #${ctx.orderNumber} está esperando.
+
+${minutesLeft > 0 ? `Você tem ~${minutesLeft} min pra pagar.` : "PIX prestes a expirar."}
+
+Código PIX:
+${ctx.codigoPix}
+
+Ou acesse: ${trackUrl}
+
+Total: ${formatMoney(ctx.total)}
+
+Açaí Tropical — ${SITE_URL}`
+
+  return { subject, html: baseLayout(content, `Seu PIX ainda está válido — pedido #${ctx.orderNumber}`), text }
+}
+
+interface PixExpiredContext {
+  orderNumber: string
+  customerName: string
+  trackingToken: string
+  items: CartItem[]
+  total: number
+}
+
+function pixExpiredTemplate(ctx: PixExpiredContext): { subject: string; html: string; text: string } {
+  const subject = `Seu PIX expirou — gere outro em 1 clique 💜`
+  const trackUrl = `${SITE_URL}/acompanhar?token=${encodeURIComponent(ctx.trackingToken)}`
+
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])}! 💜</h2>
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Seu PIX do pedido <strong>#${ctx.orderNumber}</strong> expirou, mas <strong>seu pedido ainda está aqui</strong>!
+    </p>
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Sem stress — é só clicar abaixo pra gerar um PIX novo e finalizar.
+    </p>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${trackUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
+        Gerar PIX novo e finalizar →
+      </a>
+    </div>
+
+    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 16px;">Seu pedido</h3>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="font-size: 14px;">
+      ${renderItemsList(ctx.items)}
+      <tr>
+        <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; font-weight: bold; color: #1a1a1a;">Total</td>
+        <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; text-align: right; font-weight: 800; color: #16a34a; font-size: 18px;">${formatMoney(ctx.total)}</td>
+      </tr>
+    </table>
+
+    <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Não quer mais? Sem problema — esse pedido é cancelado automaticamente sem pagamento.
+    </p>
+  `
+
+  const text = `Olá, ${ctx.customerName.split(" ")[0]}!
+
+Seu PIX do pedido #${ctx.orderNumber} expirou, mas seu pedido ainda está aqui!
+
+Clique pra gerar outro PIX:
+${trackUrl}
+
+Total: ${formatMoney(ctx.total)}
+
+Açaí Tropical — ${SITE_URL}`
+
+  return { subject, html: baseLayout(content, `Seu PIX expirou — pedido #${ctx.orderNumber}`), text }
+}
+
+// =====================================================================
+// Send — Recuperação de PIX abandonado
+// =====================================================================
+
+export interface AbandonedOrderRow {
+  id: string
+  order_number: string
+  tracking_token: string | null
+  items: CartItem[]
+  total: number | string
+  delivery: DeliveryData & {
+    shipping?: { method: "standard" | "express"; price: number }
+    subtotal?: number
+  }
+  pix_codigo: string | null
+  pix_expires_at: string | null
+}
+
+export async function sendPixNudgeEmail(
+  order: AbandonedOrderRow,
+): Promise<{ ok: boolean; error?: string; skipped?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY ausente — pulando nudge")
+    return { ok: false, error: "RESEND_API_KEY não configurada" }
+  }
+  if (!order.delivery.email) return { ok: false, skipped: "no_email" }
+  if (!order.pix_codigo) return { ok: false, skipped: "no_pix_code" }
+  if (!order.pix_expires_at) return { ok: false, skipped: "no_expires_at" }
+
+  const { subject, html, text } = pixNudgeTemplate({
+    orderNumber: order.order_number,
+    customerName: order.delivery.fullName,
+    trackingToken: order.tracking_token ?? order.id,
+    items: order.items,
+    total: Number(order.total),
+    codigoPix: order.pix_codigo,
+    expiresAtMs: new Date(order.pix_expires_at).getTime(),
+  })
+
+  try {
+    const resend = getResend()
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: order.delivery.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (error) {
+      console.error("[email] erro Resend (nudge):", error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] exceção (nudge):", err)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}
+
+export async function sendPixExpiredEmail(
+  order: AbandonedOrderRow,
+): Promise<{ ok: boolean; error?: string; skipped?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY ausente — pulando expired")
+    return { ok: false, error: "RESEND_API_KEY não configurada" }
+  }
+  if (!order.delivery.email) return { ok: false, skipped: "no_email" }
+
+  const { subject, html, text } = pixExpiredTemplate({
+    orderNumber: order.order_number,
+    customerName: order.delivery.fullName,
+    trackingToken: order.tracking_token ?? order.id,
+    items: order.items,
+    total: Number(order.total),
+  })
+
+  try {
+    const resend = getResend()
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: order.delivery.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (error) {
+      console.error("[email] erro Resend (expired):", error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] exceção (expired):", err)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}
+
 /**
  * Carrega o pedido do Supabase pelo id e dispara o email de confirmação.
  * Usado pelo checkout (cash/card) e pelo webhook do Vyat (PIX aprovado).
