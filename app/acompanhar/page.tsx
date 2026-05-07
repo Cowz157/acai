@@ -18,6 +18,7 @@ import {
 import { usePaymentTracking } from "@/lib/payment-tracker"
 import { formatMoneyBR } from "@/lib/format"
 import { AwaitingPixCard } from "@/components/checkout/awaiting-pix-card"
+import { DeliveryFailureCard } from "@/components/checkout/delivery-failure-card"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 
@@ -106,7 +107,16 @@ function TrackOrderPageContent() {
           <PaymentRefusedCard order={order} />
         )}
         {(order.payment.method !== "pix" || order.paymentStatus === "approved") && (
-          <DeliveryTimelineCard order={order} />
+          <>
+            {order.deliveryStatus !== "in_transit" ? (
+              <DeliveryFailureCard order={order} onUpdate={applyPatch} />
+            ) : (
+              <>
+                <DeliveryTimelineCard order={order} />
+                <DeliveryFailureCard order={order} onUpdate={applyPatch} />
+              </>
+            )}
+          </>
         )}
 
         <OrderDetailsCard order={order} />

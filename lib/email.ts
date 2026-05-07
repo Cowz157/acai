@@ -414,6 +414,209 @@ export async function sendPixNudgeEmail(
   }
 }
 
+// =====================================================================
+// Templates — Falha de entrega (cliente não recebeu)
+// =====================================================================
+
+interface RedeliveryEmailContext {
+  orderNumber: string
+  customerName: string
+  trackingToken: string
+  redeliveryFee: number
+  codigoPix: string
+  expiresAtMs: number
+}
+
+function redeliveryTemplate(ctx: RedeliveryEmailContext): { subject: string; html: string; text: string } {
+  const subject = `Nova entrega gerada — Pedido #${ctx.orderNumber}`
+  const trackUrl = `${SITE_URL}/acompanhar?token=${encodeURIComponent(ctx.trackingToken)}`
+
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])} 💜</h2>
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Recebemos seu relato de que o pedido <strong>#${ctx.orderNumber}</strong> não chegou. Sentimos muito pelo transtorno.
+    </p>
+
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Você optou por <strong>tentar uma nova entrega</strong>. Pra cobrir os custos do entregador na nova rota, geramos um PIX de <strong>${formatMoney(ctx.redeliveryFee)}</strong>.
+    </p>
+
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+      <p style="margin: 0; color: #92400e; font-size: 14px;">
+        ⏱ O PIX expira em ~30 minutos. Após o pagamento, sua nova entrega entra em rota imediatamente.
+      </p>
+    </div>
+
+    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
+    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px;">
+      ${escapeHtml(ctx.codigoPix)}
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${trackUrl}" style="display: inline-block; background-color: #4a0e5c; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
+        Acompanhar nova entrega →
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Mudou de ideia? Você pode solicitar reembolso integral acessando a página de acompanhamento — basta clicar em "Solicitar reembolso" lá.
+    </p>
+  `
+
+  const text = `Olá, ${ctx.customerName.split(" ")[0]}!
+
+Recebemos seu relato de que o pedido #${ctx.orderNumber} não chegou.
+
+Você optou por tentar uma nova entrega. Geramos um PIX de ${formatMoney(ctx.redeliveryFee)} pra cobrir os custos do entregador.
+
+Código PIX (expira em ~30 min):
+${ctx.codigoPix}
+
+Ou acesse: ${trackUrl}
+
+Açaí Tropical — ${SITE_URL}`
+
+  return { subject, html: baseLayout(content, `Nova entrega gerada — pedido #${ctx.orderNumber}`), text }
+}
+
+interface RefundRequestedContext {
+  orderNumber: string
+  customerName: string
+  refundAmount: number
+}
+
+function refundRequestedTemplate(ctx: RefundRequestedContext): { subject: string; html: string; text: string } {
+  const subject = `Reembolso solicitado — Pedido #${ctx.orderNumber}`
+
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])} 💜</h2>
+    <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+      Recebemos sua solicitação de reembolso pelo pedido <strong>#${ctx.orderNumber}</strong>. Sentimos muito pelo ocorrido.
+    </p>
+
+    <div style="background-color: #dcfce7; border-left: 4px solid #16a34a; padding: 16px; margin: 16px 0; border-radius: 4px;">
+      <p style="margin: 0 0 8px 0; color: #14532d; font-size: 15px; font-weight: bold;">
+        Valor a ser reembolsado: ${formatMoney(ctx.refundAmount)}
+      </p>
+      <p style="margin: 0; color: #14532d; font-size: 13px;">
+        O valor será devolvido via PIX na chave usada no pagamento original em <strong>até 5 dias úteis</strong>.
+      </p>
+    </div>
+
+    <h3 style="margin: 24px 0 8px 0; color: #1a1a1a; font-size: 16px;">Próximos passos</h3>
+    <ol style="margin: 0; padding-left: 20px; color: #1a1a1a; font-size: 14px; line-height: 1.6;">
+      <li>Nosso financeiro processa o reembolso nos próximos dias úteis</li>
+      <li>Você recebe um novo email confirmando quando o valor for enviado</li>
+      <li>O valor cai na sua conta de origem em até alguns minutos após o envio</li>
+    </ol>
+
+    <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Dúvidas sobre o reembolso? Responde esse email ou chama o WhatsApp — vamos te dar atualização do status.
+    </p>
+  `
+
+  const text = `Olá, ${ctx.customerName.split(" ")[0]}!
+
+Recebemos sua solicitação de reembolso pelo pedido #${ctx.orderNumber}.
+
+Valor a ser reembolsado: ${formatMoney(ctx.refundAmount)}
+Prazo: até 5 dias úteis
+
+O valor será devolvido via PIX na chave usada no pagamento original.
+
+Açaí Tropical — ${SITE_URL}`
+
+  return { subject, html: baseLayout(content, `Reembolso solicitado — pedido #${ctx.orderNumber}`), text }
+}
+
+// =====================================================================
+// Send — Falha de entrega
+// =====================================================================
+
+interface DeliveryFailureRow {
+  id: string
+  order_number: string
+  tracking_token: string | null
+  total: number | string
+  delivery: DeliveryData & { shipping?: { method: "standard" | "express"; price: number } }
+}
+
+export async function sendRedeliveryEmail(
+  order: DeliveryFailureRow,
+  redelivery: { codigoPix: string; expiresAtMs: number; fee: number },
+): Promise<{ ok: boolean; error?: string; skipped?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY ausente — pulando redelivery")
+    return { ok: false, error: "RESEND_API_KEY não configurada" }
+  }
+  if (!order.delivery.email) return { ok: false, skipped: "no_email" }
+
+  const { subject, html, text } = redeliveryTemplate({
+    orderNumber: order.order_number,
+    customerName: order.delivery.fullName,
+    trackingToken: order.tracking_token ?? order.id,
+    redeliveryFee: redelivery.fee,
+    codigoPix: redelivery.codigoPix,
+    expiresAtMs: redelivery.expiresAtMs,
+  })
+
+  try {
+    const resend = getResend()
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: order.delivery.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (error) {
+      console.error("[email] erro Resend (redelivery):", error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] exceção (redelivery):", err)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}
+
+export async function sendRefundRequestedEmail(
+  order: DeliveryFailureRow,
+): Promise<{ ok: boolean; error?: string; skipped?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY ausente — pulando refund")
+    return { ok: false, error: "RESEND_API_KEY não configurada" }
+  }
+  if (!order.delivery.email) return { ok: false, skipped: "no_email" }
+
+  const { subject, html, text } = refundRequestedTemplate({
+    orderNumber: order.order_number,
+    customerName: order.delivery.fullName,
+    refundAmount: Number(order.total),
+  })
+
+  try {
+    const resend = getResend()
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: order.delivery.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (error) {
+      console.error("[email] erro Resend (refund):", error)
+      return { ok: false, error: error.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] exceção (refund):", err)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}
+
 export async function sendPixExpiredEmail(
   order: AbandonedOrderRow,
 ): Promise<{ ok: boolean; error?: string; skipped?: string }> {

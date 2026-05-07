@@ -11,6 +11,19 @@ const STORAGE_KEY = "acai-tropical-last-order"
 export type OrderStatus = "preparando" | "despacho" | "a-caminho" | "entregue"
 export type PaymentStatus = "pending" | "approved" | "refused" | "refunded" | "chargeback"
 
+/**
+ * Estado da entrega após pagamento aprovado. Default 'in_transit'. Cliente
+ * pode reportar não-recebimento via /acompanhar e escolher entre re-entrega
+ * (paga) ou reembolso (admin processa manualmente).
+ */
+export type DeliveryStatus =
+  | "in_transit"
+  | "failed_reported"
+  | "redelivery_pending"
+  | "redelivery_paid"
+  | "refund_requested"
+  | "refund_processed"
+
 export interface SavedPix {
   qrCodeUrl: string | null
   codigoPix: string | null
@@ -52,6 +65,22 @@ export interface SavedOrder {
   pixExpiresAt: number | null
   /** Token único pra link `/acompanhar?token=xxx` enviado por email. */
   trackingToken: string | null
+
+  // ===================================================================
+  // Falha de entrega (cliente reportou não-recebimento)
+  // ===================================================================
+  /** Estado da entrega. Default 'in_transit'. */
+  deliveryStatus: DeliveryStatus
+  /** Quando o cliente clicou "não recebi". */
+  failureReportedAt: number | null
+  /** vyat_transaction_id do PIX de re-entrega (R$12,50). */
+  redeliveryPaymentId: string | null
+  /** EMV string do PIX de re-entrega (pra exibir na UI ao retornar). */
+  redeliveryCodigoPix: string | null
+  /** Expiração do PIX de re-entrega em ms. */
+  redeliveryExpiresAt: number | null
+  /** Quando admin marcou reembolso como concluído. */
+  refundProcessedAt: number | null
 }
 
 /** Proporções de cada etapa em relação ao tempo total do pedido. */
@@ -127,6 +156,12 @@ export function getLastOrder(): SavedOrder | null {
       pix: parsed.pix ?? null,
       pixExpiresAt: parsed.pixExpiresAt ?? null,
       trackingToken: parsed.trackingToken ?? null,
+      deliveryStatus: parsed.deliveryStatus ?? "in_transit",
+      failureReportedAt: parsed.failureReportedAt ?? null,
+      redeliveryPaymentId: parsed.redeliveryPaymentId ?? null,
+      redeliveryCodigoPix: parsed.redeliveryCodigoPix ?? null,
+      redeliveryExpiresAt: parsed.redeliveryExpiresAt ?? null,
+      refundProcessedAt: parsed.refundProcessedAt ?? null,
     }
   } catch {
     return null
@@ -198,6 +233,12 @@ export interface RemoteOrderRow {
   pix_qrcode_url: string | null
   pix_codigo: string | null
   pix_expires_at: string | null
+  delivery_status: DeliveryStatus | null
+  failure_reported_at: string | null
+  redelivery_payment_id: string | null
+  redelivery_codigo_pix: string | null
+  redelivery_expires_at: string | null
+  refund_processed_at: string | null
 }
 
 /**
@@ -312,6 +353,12 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
       pix,
       pixExpiresAt: row.pix_expires_at ? new Date(row.pix_expires_at).getTime() : null,
       trackingToken: row.tracking_token,
+      deliveryStatus: row.delivery_status ?? "in_transit",
+      failureReportedAt: row.failure_reported_at ? new Date(row.failure_reported_at).getTime() : null,
+      redeliveryPaymentId: row.redelivery_payment_id,
+      redeliveryCodigoPix: row.redelivery_codigo_pix,
+      redeliveryExpiresAt: row.redelivery_expires_at ? new Date(row.redelivery_expires_at).getTime() : null,
+      refundProcessedAt: row.refund_processed_at ? new Date(row.refund_processed_at).getTime() : null,
     }
   })
 }
@@ -357,6 +404,12 @@ export async function fetchOrderByToken(token: string): Promise<SavedOrder | nul
       pix,
       pixExpiresAt: order.pix_expires_at ? new Date(order.pix_expires_at).getTime() : null,
       trackingToken: order.tracking_token,
+      deliveryStatus: order.delivery_status ?? "in_transit",
+      failureReportedAt: order.failure_reported_at ? new Date(order.failure_reported_at).getTime() : null,
+      redeliveryPaymentId: order.redelivery_payment_id,
+      redeliveryCodigoPix: order.redelivery_codigo_pix,
+      redeliveryExpiresAt: order.redelivery_expires_at ? new Date(order.redelivery_expires_at).getTime() : null,
+      refundProcessedAt: order.refund_processed_at ? new Date(order.refund_processed_at).getTime() : null,
     }
   } catch (err) {
     console.error("[order-store] fetchOrderByToken exception:", err)

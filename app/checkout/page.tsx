@@ -140,6 +140,12 @@ export default function CheckoutPage() {
       pix,
       pixExpiresAt,
       trackingToken: uuid(),
+      deliveryStatus: "in_transit",
+      failureReportedAt: null,
+      redeliveryPaymentId: null,
+      redeliveryCodigoPix: null,
+      redeliveryExpiresAt: null,
+      refundProcessedAt: null,
     }
 
     finalizedItems.current = items
