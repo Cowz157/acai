@@ -733,3 +733,148 @@ export async function sendOrderConfirmationByOrderId(
 
   return result
 }
+
+// =====================================================================
+// Templates — Pós-entrega (seu açaí chegou?)
+// =====================================================================
+
+interface DeliveryFollowupContext {
+  orderNumber: string
+  customerName: string
+  trackingToken: string
+}
+
+function deliveryFollowupTemplate(ctx: DeliveryFollowupContext): { subject: string; html: string; text: string } {
+  const subject = `Seu açaí chegou? — Pedido #${ctx.orderNumber}`
+  const trackUrl = `${SITE_URL}/acompanhar?token=${encodeURIComponent(ctx.trackingToken)}`
+
+  // Empurra re-entrega como CTA principal (botão grande roxo). "Recebi" fica
+  // como botão secundário menor. Reembolso é mencionado discretamente no fim
+  // — quem realmente quer reembolso entra no /acompanhar e acha o link lá.
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])} 💜</h2>
+    <p style="margin: 0 0 20px 0; font-size: 15px; color: #1a1a1a;">
+      Seu pedido <strong>#${ctx.orderNumber}</strong> já deveria ter chegado. Conta pra gente como foi:
+    </p>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${trackUrl}" style="display: inline-block; width: 100%; max-width: 360px; box-sizing: border-box; background-color: #4a0e5c; color: #ffffff; padding: 18px 24px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; line-height: 1.3;">
+        Não chegou — quero nova entrega
+      </a>
+    </div>
+
+    <div style="text-align: center; margin: 12px 0 24px 0;">
+      <a href="${trackUrl}" style="display: inline-block; color: #6b7280; padding: 10px 20px; border: 1px solid #e5e7eb; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 13px;">
+        Recebi, tudo certo
+      </a>
+    </div>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; color: #1a1a1a; line-height: 1.5;">
+      Se algo deu errado, <strong>nossa nova entrega é prioridade</strong> — chega em <strong>8-25 minutos</strong> com taxa simbólica de <strong>R$ 12,50</strong> (corrida do entregador novo).
+    </p>
+
+    <p style="margin: 16px 0 0 0; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Também é possível solicitar reembolso integral acessando "acompanhar pedido", mas a nova entrega geralmente resolve mais rápido.
+    </p>
+  `
+
+  const text = `Olá, ${ctx.customerName.split(" ")[0]}!
+
+Seu pedido #${ctx.orderNumber} já deveria ter chegado.
+
+Não chegou? Geramos uma nova entrega imediata — chega em 8-25 min, com taxa de R$12,50.
+
+Acessar: ${trackUrl}
+
+Açaí Tropical — ${SITE_URL}`
+
+  return {
+    subject,
+    html: baseLayout(content, `Seu pedido #${ctx.orderNumber} chegou?`),
+    text,
+  }
+}
+
+interface DeliveryFollowupEmailRow {
+  id: string
+  order_number: string
+  tracking_token: string | null
+  delivery: DeliveryData
+}
+
+/**
+ * Carrega o pedido do Supabase pelo id e dispara o email pós-entrega.
+ *
+ * Idempotente: usa `delivery_followup_sent_at` como claim atômico — mesmo
+ * padrão do confirmation email. Cron pode chamar repetidamente sem dobrar
+ * envio.
+ *
+ * Se Resend falhar, a flag é revertida pra null pra próxima execução tentar.
+ */
+export async function sendDeliveryFollowupByOrderId(
+  orderId: string,
+): Promise<{ ok: boolean; error?: string; skipped?: string }> {
+  const admin = getSupabaseAdmin()
+
+  const { data, error } = await admin
+    .from("orders")
+    .update({ delivery_followup_sent_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .is("delivery_followup_sent_at", null)
+    .select("id, order_number, tracking_token, delivery")
+    .maybeSingle<DeliveryFollowupEmailRow>()
+
+  if (error) return { ok: false, error: error.message }
+
+  if (!data) {
+    const { data: exists } = await admin
+      .from("orders")
+      .select("id")
+      .eq("id", orderId)
+      .maybeSingle()
+    if (!exists) return { ok: false, error: "Pedido não encontrado" }
+    return { ok: true, skipped: "already_sent" }
+  }
+
+  if (!data.delivery.email) {
+    await admin
+      .from("orders")
+      .update({ delivery_followup_sent_at: null })
+      .eq("id", orderId)
+    return { ok: false, skipped: "no_email" }
+  }
+
+  const { subject, html, text } = deliveryFollowupTemplate({
+    orderNumber: data.order_number,
+    customerName: data.delivery.fullName,
+    trackingToken: data.tracking_token ?? data.id,
+  })
+
+  try {
+    const resend = getResend()
+    const { error: sendErr } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: data.delivery.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+    })
+    if (sendErr) {
+      console.error("[email] erro Resend (delivery-followup):", sendErr)
+      await admin
+        .from("orders")
+        .update({ delivery_followup_sent_at: null })
+        .eq("id", orderId)
+      return { ok: false, error: sendErr.message }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error("[email] exceção (delivery-followup):", err)
+    await admin
+      .from("orders")
+      .update({ delivery_followup_sent_at: null })
+      .eq("id", orderId)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}
