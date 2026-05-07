@@ -17,7 +17,6 @@ import { orderId as makeOrderId, uuid } from "@/lib/uuid"
 import { AddressStep } from "@/components/checkout/address-step"
 import { ConfirmationStep } from "@/components/checkout/confirmation-step"
 import { IdentificationStep } from "@/components/checkout/identification-step"
-import { OrderBump } from "@/components/checkout/order-bump"
 import { OrderSummary } from "@/components/checkout/order-summary"
 import { PaymentStep, type PaymentData } from "@/components/checkout/payment-step"
 import { StepIndicator } from "@/components/checkout/step-indicator"
@@ -272,18 +271,15 @@ export default function CheckoutPage() {
         )}
 
         {step === 3 && (
-          <>
-            <OrderBump />
-            <PaymentStep
-              total={total}
-              defaultValues={confirmedOrder?.payment}
-              onBack={() => setStep(2)}
-              onSubmit={handlePaymentSubmit}
-              loading={paymentLoading}
-              attempt={paymentAttempt}
-              errorMessage={paymentError}
-            />
-          </>
+          <PaymentStep
+            total={total}
+            defaultValues={confirmedOrder?.payment}
+            onBack={() => setStep(2)}
+            onSubmit={handlePaymentSubmit}
+            loading={paymentLoading}
+            attempt={paymentAttempt}
+            errorMessage={paymentError}
+          />
         )}
 
         {step === 4 && confirmedOrder && (
