@@ -260,8 +260,9 @@ function pixNudgeTemplate(ctx: PixNudgeContext): { subject: string; html: string
       </p>
     </div>
 
-    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px;">
+    <h3 style="margin: 24px 0 6px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
+    <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 11px;">Toque no código abaixo pra selecionar tudo, depois cole no app do banco:</p>
+    <div style="background-color: #f5f5f5; border: 2px dashed #d1d5db; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px; user-select: all; -webkit-user-select: all; -moz-user-select: all; cursor: pointer;">
       ${escapeHtml(ctx.codigoPix)}
     </div>
 
@@ -447,8 +448,9 @@ function redeliveryTemplate(ctx: RedeliveryEmailContext): { subject: string; htm
       </p>
     </div>
 
-    <h3 style="margin: 24px 0 12px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
-    <div style="background-color: #f5f5f5; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px;">
+    <h3 style="margin: 24px 0 6px 0; color: #1a1a1a; font-size: 14px;">Código copia e cola:</h3>
+    <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 11px;">Toque no código abaixo pra selecionar tudo, depois cole no app do banco:</p>
+    <div style="background-color: #f5f5f5; border: 2px dashed #d1d5db; border-radius: 8px; padding: 12px; font-family: 'Courier New', monospace; font-size: 11px; word-break: break-all; color: #1a1a1a; margin-bottom: 16px; user-select: all; -webkit-user-select: all; -moz-user-select: all; cursor: pointer;">
       ${escapeHtml(ctx.codigoPix)}
     </div>
 
@@ -758,14 +760,14 @@ function deliveryFollowupTemplate(ctx: DeliveryFollowupContext): { subject: stri
     </p>
 
     <div style="text-align: center; margin: 24px 0;">
-      <a href="${trackUrl}" style="display: inline-block; width: 100%; max-width: 360px; box-sizing: border-box; background-color: #4a0e5c; color: #ffffff; padding: 18px 24px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; line-height: 1.3;">
+      <a href="${trackUrl}" style="display: inline-block; width: 100%; max-width: 360px; box-sizing: border-box; background-color: #dc2626; color: #ffffff; padding: 18px 24px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; line-height: 1.3;">
         Não chegou — quero nova entrega
       </a>
     </div>
 
     <div style="text-align: center; margin: 12px 0 24px 0;">
-      <a href="${trackUrl}" style="display: inline-block; color: #6b7280; padding: 10px 20px; border: 1px solid #e5e7eb; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 13px;">
-        Recebi, tudo certo
+      <a href="${trackUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 12px 28px; border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 13px;">
+        ✅ Recebi, tudo certo
       </a>
     </div>
 
