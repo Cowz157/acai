@@ -18,7 +18,12 @@ export function mapVyatStatus(status: string): PaymentStatus {
     case "chargeback":
       return "chargeback"
     case "pending":
+      return "pending"
     default:
+      // Status fora do enum conhecido — pode ser novo estado (cancelled/failed/expired)
+      // que a Vyat passou a retornar e não estamos mapeando. Loga pra investigar antes
+      // de virar bug silencioso (cliente fica em loop esperando aprovação).
+      console.warn(`[payment-tracker] status desconhecido do Vyat: "${status}" — tratando como pending`)
       return "pending"
   }
 }
