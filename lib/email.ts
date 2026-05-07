@@ -657,27 +657,59 @@ export async function sendPixExpiredEmail(
 
 /**
  * Carrega o pedido do Supabase pelo id e dispara o email de confirmação.
- * Usado pelo checkout (cash/card) e pelo webhook do Vyat (PIX aprovado).
+ *
+ * Idempotente: usa `confirmation_email_sent_at` como claim atômico. Dois
+ * caminhos podem chamar essa função pra mesmo orderId quase simultaneamente
+ * (polling no cliente + cron server-side de check-pending-pix). Quem ganha
+ * o UPDATE da flag dispara o email; o outro retorna `skipped: 'already_sent'`.
+ *
+ * Se o envio do Resend falhar, a flag é revertida pra null pra que a
+ * próxima execução do cron (ou retry do client) tente de novo.
  */
 export async function sendOrderConfirmationByOrderId(
   orderId: string,
 ): Promise<{ ok: boolean; error?: string; skipped?: string }> {
-  const { data, error } = await getSupabaseAdmin()
+  const admin = getSupabaseAdmin()
+
+  // Claim atômico: só sucede se confirmation_email_sent_at ainda for null.
+  // O .select() retorna a row com os dados pra montar o email — economiza
+  // um SELECT extra no caso comum.
+  const { data, error } = await admin
     .from("orders")
-    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery")
+    .update({ confirmation_email_sent_at: new Date().toISOString() })
     .eq("id", orderId)
+    .is("confirmation_email_sent_at", null)
+    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery")
     .maybeSingle<OrderEmailRow>()
 
   if (error) return { ok: false, error: error.message }
-  if (!data) return { ok: false, error: "Pedido não encontrado" }
+
+  if (!data) {
+    // Update afetou 0 rows — ou pedido não existe, ou já foi reivindicado
+    // por outra execução. Diferencia pra dar erro ou skip apropriado.
+    const { data: exists } = await admin
+      .from("orders")
+      .select("id")
+      .eq("id", orderId)
+      .maybeSingle()
+    if (!exists) return { ok: false, error: "Pedido não encontrado" }
+    return { ok: true, skipped: "already_sent" }
+  }
 
   const delivery = data.delivery
   const shipping = delivery.shipping ?? { method: "standard" as const, price: 0 }
   const subtotal = delivery.subtotal ?? Math.max(0, Number(data.total) - shipping.price)
 
-  if (!delivery.email) return { ok: false, skipped: "no_email" }
+  if (!delivery.email) {
+    // Sem email = não tem como enviar; reverte claim pra não bloquear retry futuro
+    await admin
+      .from("orders")
+      .update({ confirmation_email_sent_at: null })
+      .eq("id", orderId)
+    return { ok: false, skipped: "no_email" }
+  }
 
-  return sendOrderConfirmationEmail({
+  const result = await sendOrderConfirmationEmail({
     orderNumber: data.order_number,
     customerName: delivery.fullName,
     customerEmail: delivery.email,
@@ -690,4 +722,14 @@ export async function sendOrderConfirmationByOrderId(
     shippingMethod: shipping.method,
     etaMinutes: data.eta_minutes,
   })
+
+  if (!result.ok) {
+    // Falha no Resend — desfaz claim pra próximo retry tentar de novo
+    await admin
+      .from("orders")
+      .update({ confirmation_email_sent_at: null })
+      .eq("id", orderId)
+  }
+
+  return result
 }
