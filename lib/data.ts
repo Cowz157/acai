@@ -3,6 +3,7 @@ export type ProductCategory =
   | "pague-leve-zero"
   | "avulso"
   | "avulso-zero"
+  | "addon"
 export type ProductKind = "combo" | "addon"
 
 export type Product = {
@@ -233,6 +234,47 @@ export const products: Product[] = [
     freebies: 9,
     description: ZERO_DESCRIPTION,
     image: "/images/copo-2.png",
+  },
+  // Order bumps — só aparecem no checkout (step 3), não no cardápio principal.
+  // category="addon" não está em `categories`, então o home.tsx não renderiza.
+  {
+    slug: "nutella-30g",
+    name: "Nutella 30g",
+    size: "30g",
+    category: "addon",
+    kind: "addon",
+    isZero: false,
+    oldPrice: 3.99,
+    price: 3.99,
+    freebies: 0,
+    description: "Cobertura cremosa pra completar seu açaí",
+    image: "/images/nutella.png",
+  },
+  {
+    slug: "bis-lacta-3un",
+    name: "Bis Lacta (3 un)",
+    size: "3 un",
+    category: "addon",
+    kind: "addon",
+    isZero: false,
+    oldPrice: 2.99,
+    price: 2.99,
+    freebies: 0,
+    description: "Bis tradicional — chocolate ao leite",
+    image: "/images/bis-lacta.png",
+  },
+  {
+    slug: "bis-lacta-branco-3un",
+    name: "Bis Branco (3 un)",
+    size: "3 un",
+    category: "addon",
+    kind: "addon",
+    isZero: false,
+    oldPrice: 2.99,
+    price: 2.99,
+    freebies: 0,
+    description: "Bis chocolate branco",
+    image: "/images/bis-lacta-branco.png",
   },
 ]
 
