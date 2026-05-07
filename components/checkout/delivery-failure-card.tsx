@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import QRCode from "qrcode"
 import {
   AlertTriangle,
@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Truck,
 } from "lucide-react"
-import { type SavedOrder } from "@/lib/order-store"
+import { getDeliveryAnchor, getOrderStatus, type SavedOrder } from "@/lib/order-store"
 import { formatMoneyBR } from "@/lib/format"
 
 interface DeliveryFailureCardProps {
@@ -21,6 +21,16 @@ interface DeliveryFailureCardProps {
 }
 
 const REDELIVERY_FEE = 12.5
+
+/**
+ * Janela de ETA da re-entrega — sempre mais curta que a entrega original
+ * pra criar incentivo no momento da decisão. Express vira ainda mais
+ * rápido pra manter o "Express" como vantagem real.
+ */
+function redeliveryEtaWindow(method: "standard" | "express"): { min: number; max: number } {
+  if (method === "express") return { min: 8, max: 12 }
+  return { min: 15, max: 25 }
+}
 
 function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -33,12 +43,53 @@ export function DeliveryFailureCard({ order, onUpdate }: DeliveryFailureCardProp
   const [submitting, setSubmitting] = useState<"redelivery" | "refund" | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [qrSrc, setQrSrc] = useState<string | null>(null)
+  const [confirmedDelivered, setConfirmedDelivered] = useState(false)
+  const [tickNow, setTickNow] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [checkingPayment, setCheckingPayment] = useState(false)
   const [checkResult, setCheckResult] = useState<"pending" | "error" | null>(null)
   const [copied, setCopied] = useState(false)
 
   const status = order.deliveryStatus
+  const confirmedKey = `acai-confirmed-delivery-${order.id}`
+  const redeliveryEta = redeliveryEtaWindow(order.shipping.method)
+
+  // Hidrata flag de "já confirmei recebimento" do localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      if (window.localStorage.getItem(confirmedKey) === "1") {
+        setConfirmedDelivered(true)
+      }
+    } catch {
+      /* noop */
+    }
+  }, [confirmedKey])
+
+  // Tick a cada 30s pra re-avaliar timeline status (evita refresh manual)
+  useEffect(() => {
+    if (status !== "in_transit" || confirmedDelivered) return
+    const interval = setInterval(() => setTickNow(Date.now()), 30_000)
+    return () => clearInterval(interval)
+  }, [status, confirmedDelivered])
+
+  // Timeline status atual (preparando | despacho | a-caminho | entregue)
+  const timelineStatus = useMemo(() => {
+    if (order.payment.method === "pix" && order.paymentStatus !== "approved") return null
+    const anchor = getDeliveryAnchor(order)
+    return getOrderStatus(anchor, order.etaMinutes, tickNow)
+  }, [order, tickNow])
+
+  const handleConfirmDelivered = () => {
+    setConfirmedDelivered(true)
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(confirmedKey, "1")
+      }
+    } catch {
+      /* noop */
+    }
+  }
 
   // QR code do PIX de re-entrega (sempre gerado local da string EMV)
   useEffect(() => {
@@ -213,8 +264,12 @@ export function DeliveryFailureCard({ order, onUpdate }: DeliveryFailureCardProp
         <p className="mt-2 text-sm text-muted-foreground">
           Pedido <strong className="text-foreground">#{order.orderId}</strong>
         </p>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-success px-4 py-1.5 text-sm font-semibold text-white">
+          <Truck className="h-4 w-4" />
+          Chega em ~{redeliveryEta.min}-{redeliveryEta.max} minutos
+        </div>
         <p className="mt-3 text-sm text-foreground">
-          Pagamento da re-entrega confirmado. Estamos enviando seu açaí novamente. 💜
+          Pagamento da re-entrega confirmado. Estamos enviando seu açaí novamente — com prioridade. 💜
         </p>
       </div>
     )
@@ -357,7 +412,10 @@ export function DeliveryFailureCard({ order, onUpdate }: DeliveryFailureCardProp
                     {formatMoneyBR(REDELIVERY_FEE)}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
+                <div className="mt-1 text-xs font-semibold text-success">
+                  ⚡ Chega em ~{redeliveryEta.min}-{redeliveryEta.max} min — entrega prioritária
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
                   Geramos um novo PIX. Pague e a entrega entra em rota imediato.
                 </div>
               </div>
@@ -378,7 +436,7 @@ export function DeliveryFailureCard({ order, onUpdate }: DeliveryFailureCardProp
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold text-foreground">Solicitar reembolso integral</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  Reembolso de {formatMoneyBR(order.total)} via PIX em até 5 dias úteis.
+                  Reembolso de {formatMoneyBR(order.total)} via PIX em até <strong>5 dias úteis</strong>.
                 </div>
               </div>
               {submitting === "refund" && <Loader2 className="h-4 w-4 animate-spin text-success" />}
@@ -404,17 +462,42 @@ export function DeliveryFailureCard({ order, onUpdate }: DeliveryFailureCardProp
   }
 
   // -------------------------------------------------------------------
-  // Default (in_transit): trigger button discreto
+  // in_transit, timeline ainda rodando OU cliente já confirmou: nada a mostrar
+  // -------------------------------------------------------------------
+  if (timelineStatus !== "entregue" || confirmedDelivered) {
+    return null
+  }
+
+  // -------------------------------------------------------------------
+  // in_transit + timeline === "entregue" + sem confirmação: prompt ativo
   // -------------------------------------------------------------------
   return (
-    <div className="rounded-xl border border-border bg-white px-4 py-3 text-center shadow-sm">
-      <button
-        type="button"
-        onClick={() => setShowOptions(true)}
-        className="text-sm font-semibold text-muted-foreground transition hover:text-danger"
-      >
-        Não recebi meu pedido?
-      </button>
+    <div className="rounded-2xl border-2 border-primary bg-primary-soft/40 p-5 shadow-sm md:p-6">
+      <div className="text-center">
+        <h3 className="text-base font-bold text-primary md:text-lg">Seu pedido já chegou?</h3>
+        <p className="mt-1 text-xs text-muted-foreground md:text-sm">
+          Confirma pra gente saber que tudo deu certo!
+        </p>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2 md:flex-row">
+        <button
+          type="button"
+          onClick={handleConfirmDelivered}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-success px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-95"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          Sim, recebi normalmente
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowOptions(true)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-danger bg-white px-5 py-3 text-sm font-bold text-danger transition hover:bg-danger-soft"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          Não recebi
+        </button>
+      </div>
     </div>
   )
 }
