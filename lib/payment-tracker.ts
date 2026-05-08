@@ -74,6 +74,14 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
 
         if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
           emailDispatchedRef.current = order.id
+          // Marca pedido como pago no Supabase — sem isso, status fica 'pending'
+          // indefinidamente e o cron de abandonment manda nudge pra quem já pagou.
+          void fetch(`/api/orders/${encodeURIComponent(order.id)}/mark-paid`, {
+            method: "POST",
+          }).catch((err) => {
+            console.error("[payment-tracker] falha ao marcar pedido como pago:", err)
+          })
+          // Email transacional de confirmação
           void fetch("/api/orders/send-confirmation-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
