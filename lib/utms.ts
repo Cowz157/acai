@@ -19,8 +19,9 @@
  *    &keyword={keyword}&device={device}&network={network}
  *
  * gclid é adicionado automaticamente pela Google quando auto-tagging está
- * ligado na conta. Captura paralela do `latest.js` da UTMify garante
- * atribuição de conversão mesmo se o nosso storage falhar.
+ * ligado na conta. Persistência local serve como backup pra atribuição
+ * server-side (Vyat → Google Ads Conversion API) caso o GTM client-side
+ * seja bloqueado por extensões/ad-blockers.
  */
 
 export interface Utms {

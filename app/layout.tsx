@@ -34,21 +34,26 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${poppins.variable} ${nunito.variable} bg-background`}>
       <head>
-        <Script
-          src="https://cdn.utmify.com.br/scripts/utms/latest.js"
-          data-utmify-prevent-xcod-sck=""
-          data-utmify-prevent-subids=""
-          strategy="afterInteractive"
-        />
-        <Script id="utmify-google-pixel-config" strategy="afterInteractive">
-          {`window.googlePixelId = "69fab9b29f2c3e8e7db38c86";`}
+        {/* Google Tag Manager — gerencia todos os pixels (Google Ads, GA4, etc.)
+            via container GTM-TG2JZG27. Substitui UTMify removida em 2026-05-09. */}
+        <Script id="gtm-init" strategy="afterInteractive">
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-TG2JZG27');`}
         </Script>
-        <Script
-          src="https://cdn.utmify.com.br/scripts/pixel/pixel-google.js"
-          strategy="afterInteractive"
-        />
       </head>
       <body className="font-sans antialiased">
+        {/* GTM noscript fallback — recomendado pela Google logo após <body> */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-TG2JZG27"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <UtmsCapture />
         {children}
         <CartUI />
