@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import Script from "next/script"
 import { Poppins, Nunito } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { CartUI } from "@/components/cart/cart-ui"
 import { UtmsCapture } from "@/components/utms-capture"
 import "./globals.css"
@@ -35,7 +34,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${poppins.variable} ${nunito.variable} bg-background`}>
       <head>
         {/* Google Tag Manager — gerencia todos os pixels (Google Ads, GA4, etc.)
-            via container GTM-TG2JZG27. Substitui UTMify removida em 2026-05-09. */}
+            via container GTM-TG2JZG27. */}
         <Script id="gtm-init" strategy="afterInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -57,7 +56,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <UtmsCapture />
         {children}
         <CartUI />
-        {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
   )

@@ -78,7 +78,7 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
           // no GTM (Custom Event). Dispara só quando approved é detectado, não
           // em PIX gerado mas não pago (que também fica em /acompanhar).
           // transaction_id permite dedup no Google Ads se um caminho server-side
-          // (UTMify ou Vyat-direct) também enviar a mesma conversão.
+          // (Vyat-direct futuro) também enviar a mesma conversão.
           if (typeof window !== "undefined") {
             window.dataLayer = window.dataLayer || []
             window.dataLayer.push({
