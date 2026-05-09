@@ -74,6 +74,20 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
 
         if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
           emailDispatchedRef.current = order.id
+          // Push do evento `purchase` pro dataLayer — trigger da tag Purchase
+          // no GTM (Custom Event). Dispara só quando approved é detectado, não
+          // em PIX gerado mas não pago (que também fica em /acompanhar).
+          // transaction_id permite dedup no Google Ads se um caminho server-side
+          // (UTMify ou Vyat-direct) também enviar a mesma conversão.
+          if (typeof window !== "undefined") {
+            window.dataLayer = window.dataLayer || []
+            window.dataLayer.push({
+              event: "purchase",
+              value: order.total,
+              currency: "BRL",
+              transaction_id: order.id,
+            })
+          }
           // Marca pedido como pago no Supabase — sem isso, status fica 'pending'
           // indefinidamente e o cron de abandonment manda nudge pra quem já pagou.
           void fetch(`/api/orders/${encodeURIComponent(order.id)}/mark-paid`, {
