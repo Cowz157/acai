@@ -54,14 +54,6 @@ export default function CheckoutPage() {
   const shippingPrice = getShippingOption(shippingMethod).price
   const total = subtotal + shippingPrice + donationAmount
 
-  // Se o cliente reduziu o carrinho abaixo do threshold da seção de doação após já
-  // ter selecionado um valor, zera pra não cobrar uma doação que ele nem vê mais.
-  useEffect(() => {
-    if (subtotal < 30 && donationAmount > 0) {
-      setDonationAmount(0)
-    }
-  }, [subtotal, donationAmount])
-
   // Defaults dos forms — combina endereço salvo + dados do usuário logado
   const identificationDefaults: Partial<IdentificationData> | undefined = useMemo(() => {
     if (identification) return identification
@@ -288,7 +280,6 @@ export default function CheckoutPage() {
         {step === 3 && (
           <PaymentStep
             total={total}
-            subtotal={subtotal}
             defaultValues={confirmedOrder?.payment}
             onBack={() => setStep(2)}
             onSubmit={handlePaymentSubmit}

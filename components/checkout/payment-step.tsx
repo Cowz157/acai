@@ -17,8 +17,6 @@ export interface PaymentData {
 
 interface PaymentStepProps {
   total: number
-  /** Subtotal sem frete e sem doação — usado pra threshold da seção de doação. */
-  subtotal: number
   defaultValues?: Partial<PaymentData>
   onBack: () => void
   onSubmit: (data: PaymentData) => void | Promise<void>
@@ -30,10 +28,6 @@ interface PaymentStepProps {
   donationAmount: number
   onDonationChange: (next: number) => void
 }
-
-/** Pedido mínimo pra mostrar a seção de doação. Abaixo disso, R$5 mín pesa demais
- * proporcionalmente (>15% do ticket) e arrisca atrapalhar a conversão principal. */
-const DONATION_MIN_SUBTOTAL = 30
 
 interface OptionProps {
   selected: boolean
@@ -118,7 +112,6 @@ function PaymentOption({
 
 export function PaymentStep({
   total,
-  subtotal,
   defaultValues,
   onBack,
   onSubmit,
@@ -177,9 +170,7 @@ export function PaymentStep({
         />
       </div>
 
-      {subtotal >= DONATION_MIN_SUBTOTAL && (
-        <DonationSection value={donationAmount} onChange={onDonationChange} />
-      )}
+      <DonationSection value={donationAmount} onChange={onDonationChange} />
 
       {errorMessage && (
         <div className="rounded-lg bg-danger-soft px-3 py-2 text-xs font-semibold text-danger">{errorMessage}</div>
