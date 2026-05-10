@@ -39,20 +39,28 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
     setCustomError(null)
   }
 
+  /**
+   * Formata o input como moeda em tempo real (estilo Nubank): cliente digita
+   * só números e o display vira "X,YY" automaticamente — cada dígito empurra
+   * pra esquerda. Ex: "5" → "0,05", "500" → "5,00", "5500" → "55,00".
+   */
   const handleCustomChange = (raw: string) => {
-    const cleaned = raw.replace(/[^\d,]/g, "")
-    setCustomRaw(cleaned)
+    const digits = raw.replace(/\D/g, "")
+    if (!digits) {
+      setCustomRaw("")
+      setCustomError(null)
+      onChange(0)
+      return
+    }
+    const cents = Number.parseInt(digits.slice(0, 9), 10) // limite 7 dígitos antes da vírgula
+    const value = cents / 100
+    setCustomRaw(value.toFixed(2).replace(".", ","))
     setCustomError(null)
-    const numeric = Number(cleaned.replace(",", "."))
-    if (!Number.isFinite(numeric) || numeric <= 0) {
+    if (value < MIN_CUSTOM) {
       onChange(0)
       return
     }
-    if (numeric < MIN_CUSTOM) {
-      onChange(0)
-      return
-    }
-    onChange(Math.round(numeric * 100) / 100)
+    onChange(Math.round(value * 100) / 100)
   }
 
   const handleCustomBlur = () => {
@@ -145,8 +153,8 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
               onChange={(e) => handleCustomChange(e.target.value)}
               onBlur={handleCustomBlur}
               placeholder="0,00"
-              inputMode="decimal"
-              className="flex-1 bg-transparent text-sm font-semibold text-foreground outline-none"
+              inputMode="numeric"
+              className="flex-1 bg-transparent text-sm font-semibold tabular-nums text-foreground outline-none"
             />
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
