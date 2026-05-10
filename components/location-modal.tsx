@@ -5,6 +5,7 @@ import { Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
+import { fetchCitiesByState } from "@/lib/ibge-cities"
 import { cn } from "@/lib/utils"
 
 /**
@@ -26,9 +27,17 @@ interface SearchableSelectProps {
   onChange: (next: string) => void
   options: string[]
   placeholder: string
+  /** Mostra spinner em vez da lista — usado enquanto cidades carregam do IBGE. */
+  loading?: boolean
 }
 
-function SearchableSelect({ value, onChange, options, placeholder }: SearchableSelectProps) {
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  loading = false,
+}: SearchableSelectProps) {
   const [search, setSearch] = useState("")
   const listRef = useRef<HTMLDivElement>(null)
   const selectedRef = useRef<HTMLButtonElement>(null)
@@ -85,7 +94,12 @@ function SearchableSelect({ value, onChange, options, placeholder }: SearchableS
         ref={listRef}
         className="scrollbar-visible mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white"
       >
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Carregando lista...
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="px-3 py-4 text-center">
             {search.trim() ? (
               <>
@@ -163,6 +177,10 @@ export function LocationModal() {
   const [city, setCity] = useState("")
   /** Marca true quando o estado/cidade foram preenchidos via IP (não manual). */
   const [autoDetected, setAutoDetected] = useState(false)
+  // Lista de municípios buscada via IBGE quando estado é escolhido. citiesByState
+  // estático só cobre RJ/SP/MG; pros outros 24 estados, IBGE preenche.
+  const [cities, setCities] = useState<string[]>([])
+  const [loadingCities, setLoadingCities] = useState(false)
 
   useEffect(() => {
     try {
@@ -209,6 +227,34 @@ export function LocationModal() {
     }
   }, [step])
 
+  // Carrega cidades do IBGE quando entra no step 2. Estática (lib/data.ts) tem
+  // prioridade pros estados cobertos (RJ/SP/MG), evita rede desnecessária.
+  useEffect(() => {
+    if (step !== 2 || !state) return
+    let cancelled = false
+
+    const local = citiesByState[state] ?? []
+    if (local.length > 0) {
+      setCities(local)
+      setLoadingCities(false)
+      return
+    }
+
+    setLoadingCities(true)
+    fetchCitiesByState(state)
+      .then((list) => {
+        if (cancelled) return
+        setCities(list)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCities(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [step, state])
+
   const closeModal = () => {
     try {
       window.localStorage.setItem(SEEN_KEY, "1")
@@ -220,8 +266,6 @@ export function LocationModal() {
   }
 
   if (!open) return null
-
-  const cities = citiesByState[state] ?? []
 
   return (
     <div
@@ -300,6 +344,7 @@ export function LocationModal() {
                 onChange={setCity}
                 options={cities}
                 placeholder="Buscar cidade..."
+                loading={loadingCities}
               />
             </div>
             <div className="mt-5 flex justify-center">
