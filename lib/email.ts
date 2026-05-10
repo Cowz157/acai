@@ -2,7 +2,7 @@ import "server-only"
 
 import { Resend } from "resend"
 import type { CartItem } from "./cart-store"
-import type { DeliveryData } from "./checkout-types"
+import type { DeliveryData, GiftData } from "./checkout-types"
 import { getSupabaseAdmin } from "./supabase-admin"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ""
@@ -71,6 +71,7 @@ interface OrderEmailContext {
   delivery: DeliveryData
   shippingMethod: "standard" | "express"
   etaMinutes: number
+  gift: GiftData | null
 }
 
 function baseLayout(content: string, preheader = ""): string {
@@ -114,13 +115,44 @@ function baseLayout(content: string, preheader = ""): string {
 
 function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; html: string; text: string } {
   const trackUrl = `${SITE_URL}/acompanhar?token=${encodeURIComponent(ctx.trackingToken)}`
-  const subject = `Pedido #${ctx.orderNumber} confirmado — chega em ~${ctx.etaMinutes} min`
+  const isGift = Boolean(ctx.gift)
+  const subject = isGift
+    ? `Presente confirmado pra ${ctx.gift!.recipientName.split(" ")[0]} 🎁 — Pedido #${ctx.orderNumber}`
+    : `Pedido #${ctx.orderNumber} confirmado — chega em ~${ctx.etaMinutes} min`
+
+  const giftBlock = isGift
+    ? `
+    <div style="background-color: #fdf4ff; border: 2px solid #a855f7; border-radius: 12px; padding: 16px 20px; margin: 16px 0;">
+      <p style="margin: 0 0 8px 0; color: #6b21a8; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+        🎁 Presente para
+      </p>
+      <p style="margin: 0 0 6px 0; color: #1a1a1a; font-size: 18px; font-weight: 800;">
+        ${escapeHtml(ctx.gift!.recipientName)}
+      </p>
+      <p style="margin: 0 0 ${ctx.gift!.message ? "12px" : "0"} 0; color: #6b7280; font-size: 13px;">
+        WhatsApp: ${escapeHtml(ctx.gift!.recipientPhone)}
+      </p>
+      ${
+        ctx.gift!.message
+          ? `<div style="background-color: #ffffff; border-left: 4px solid #a855f7; padding: 12px 14px; border-radius: 4px; font-style: italic; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
+        "${escapeHtml(ctx.gift!.message)}"
+      </div>`
+          : ""
+      }
+    </div>`
+    : ""
 
   const content = `
     <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 20px;">Olá, ${escapeHtml(ctx.customerName.split(" ")[0])}! 💜</h2>
     <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
-      Recebemos seu pedido <strong>#${ctx.orderNumber}</strong> e já estamos preparando.
+      ${
+        isGift
+          ? `Recebemos seu presente <strong>#${ctx.orderNumber}</strong> e já estamos preparando com carinho pra <strong>${escapeHtml(ctx.gift!.recipientName.split(" ")[0])}</strong>.`
+          : `Recebemos seu pedido <strong>#${ctx.orderNumber}</strong> e já estamos preparando.`
+      }
     </p>
+
+    ${giftBlock}
 
     <div style="background-color: #f3e8f7; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
       <p style="margin: 0 0 4px 0; color: #4a0e5c; font-size: 13px; font-weight: 600;">Tempo estimado de entrega</p>
@@ -155,9 +187,9 @@ function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; h
       </tr>
     </table>
 
-    <h3 style="margin: 24px 0 8px 0; color: #1a1a1a; font-size: 16px;">Endereço de entrega</h3>
+    <h3 style="margin: 24px 0 8px 0; color: #1a1a1a; font-size: 16px;">${isGift ? "Endereço de entrega do presente" : "Endereço de entrega"}</h3>
     <p style="margin: 0; color: #1a1a1a; font-size: 14px;">
-      ${escapeHtml(ctx.delivery.fullName)}<br>
+      ${escapeHtml(isGift ? ctx.gift!.recipientName : ctx.delivery.fullName)}<br>
       ${escapeHtml(ctx.delivery.street)}, ${escapeHtml(ctx.delivery.number)}${ctx.delivery.complement ? ` - ${escapeHtml(ctx.delivery.complement)}` : ""}<br>
       ${ctx.delivery.neighborhood ? `${escapeHtml(ctx.delivery.neighborhood)}<br>` : ""}
       ${ctx.delivery.reference ? `<span style="color: #6b7280;">Ref: ${escapeHtml(ctx.delivery.reference)}</span>` : ""}
@@ -168,10 +200,20 @@ function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; h
     </p>
   `
 
+  const giftText = isGift
+    ? `\n🎁 Presente para: ${ctx.gift!.recipientName}\nWhatsApp: ${ctx.gift!.recipientPhone}${
+        ctx.gift!.message ? `\nMensagem: "${ctx.gift!.message}"` : ""
+      }\n`
+    : ""
+
   const text = `Olá, ${ctx.customerName.split(" ")[0]}!
 
-Recebemos seu pedido #${ctx.orderNumber} e já estamos preparando.
-
+${
+  isGift
+    ? `Recebemos seu presente #${ctx.orderNumber} e já estamos preparando com carinho.`
+    : `Recebemos seu pedido #${ctx.orderNumber} e já estamos preparando.`
+}
+${giftText}
 Tempo estimado: ~${ctx.etaMinutes} minutos (${ctx.shippingMethod === "express" ? "Express" : "Padrão"})
 
 Acompanhe em: ${trackUrl}
@@ -227,6 +269,7 @@ interface OrderEmailRow {
     shipping?: { method: "standard" | "express"; price: number }
     subtotal?: number
   }
+  gift: GiftData | null
 }
 
 // =====================================================================
@@ -681,7 +724,7 @@ export async function sendOrderConfirmationByOrderId(
     .update({ confirmation_email_sent_at: new Date().toISOString() })
     .eq("id", orderId)
     .is("confirmation_email_sent_at", null)
-    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery")
+    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery, gift")
     .maybeSingle<OrderEmailRow>()
 
   if (error) return { ok: false, error: error.message }
@@ -723,6 +766,7 @@ export async function sendOrderConfirmationByOrderId(
     delivery,
     shippingMethod: shipping.method,
     etaMinutes: data.eta_minutes,
+    gift: data.gift,
   })
 
   if (!result.ok) {

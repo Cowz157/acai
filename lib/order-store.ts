@@ -1,7 +1,7 @@
 "use client"
 
 import type { CartItem } from "./cart-store"
-import type { DeliveryData } from "./checkout-types"
+import type { DeliveryData, GiftData } from "./checkout-types"
 import type { PaymentData } from "@/components/checkout/payment-step"
 import { getShippingOption, type ShippingMethod } from "./data"
 import { supabase } from "./supabase"
@@ -65,6 +65,9 @@ export interface SavedOrder {
   pixExpiresAt: number | null
   /** Token único pra link `/acompanhar?token=xxx` enviado por email. */
   trackingToken: string | null
+
+  /** Dados de presente — null quando pedido é pro próprio cliente. */
+  gift: GiftData | null
 
   // ===================================================================
   // Falha de entrega (cliente reportou não-recebimento)
@@ -162,6 +165,7 @@ export function getLastOrder(): SavedOrder | null {
       redeliveryCodigoPix: parsed.redeliveryCodigoPix ?? null,
       redeliveryExpiresAt: parsed.redeliveryExpiresAt ?? null,
       refundProcessedAt: parsed.refundProcessedAt ?? null,
+      gift: parsed.gift ?? null,
     }
   } catch {
     return null
@@ -239,6 +243,7 @@ export interface RemoteOrderRow {
   redelivery_codigo_pix: string | null
   redelivery_expires_at: string | null
   refund_processed_at: string | null
+  gift: GiftData | null
 }
 
 /**
@@ -273,6 +278,7 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       pix_qrcode_url: order.pix?.qrCodeUrl ?? null,
       pix_codigo: order.pix?.codigoPix ?? null,
       pix_expires_at: order.pixExpiresAt ? new Date(order.pixExpiresAt).toISOString() : null,
+      gift: order.gift,
     }
 
     const res = await fetch("/api/orders/create", {
@@ -359,6 +365,7 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
       redeliveryCodigoPix: row.redelivery_codigo_pix,
       redeliveryExpiresAt: row.redelivery_expires_at ? new Date(row.redelivery_expires_at).getTime() : null,
       refundProcessedAt: row.refund_processed_at ? new Date(row.refund_processed_at).getTime() : null,
+      gift: row.gift,
     }
   })
 }
@@ -410,6 +417,7 @@ export async function fetchOrderByToken(token: string): Promise<SavedOrder | nul
       redeliveryCodigoPix: order.redelivery_codigo_pix,
       redeliveryExpiresAt: order.redelivery_expires_at ? new Date(order.redelivery_expires_at).getTime() : null,
       refundProcessedAt: order.refund_processed_at ? new Date(order.refund_processed_at).getTime() : null,
+      gift: order.gift,
     }
   } catch (err) {
     console.error("[order-store] fetchOrderByToken exception:", err)

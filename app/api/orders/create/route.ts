@@ -21,6 +21,7 @@ interface CreateOrderBody {
   pix_qrcode_url?: string | null
   pix_codigo?: string | null
   pix_expires_at?: string | null
+  gift?: unknown
 }
 
 /**

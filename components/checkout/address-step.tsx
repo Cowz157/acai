@@ -1,19 +1,26 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowLeft, Loader2, MapPin } from "lucide-react"
+import { ArrowLeft, Gift, Loader2, MapPin, Sparkles } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { fetchCEP } from "@/lib/cep-api"
-import { addressSchema, type AddressData } from "@/lib/checkout-types"
+import {
+  addressSchema,
+  giftMessageTemplates,
+  type AddressData,
+  type GiftData,
+} from "@/lib/checkout-types"
 import { type ShippingMethod } from "@/lib/data"
-import { maskCEP, unmaskDigits } from "@/lib/format"
+import { maskCEP, maskPhone, unmaskDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ShippingSelector } from "./shipping-selector"
 
 interface AddressStepProps {
   defaultValues?: Partial<AddressData>
-  onSubmit: (data: AddressData) => void
+  /** Estado inicial do gift (vindo de um pedido salvo, ex: voltar do step 3). */
+  giftDefault?: GiftData | null
+  onSubmit: (data: AddressData, gift: GiftData | null) => void
   onBack: () => void
   shippingMethod: ShippingMethod
   onShippingChange: (next: ShippingMethod) => void
@@ -43,6 +50,7 @@ const inputClass =
 
 export function AddressStep({
   defaultValues,
+  giftDefault,
   onSubmit,
   onBack,
   shippingMethod,
@@ -62,6 +70,13 @@ export function AddressStep({
   })
 
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+
+  // Estado da seção de presente (validação manual no submit)
+  const [isGift, setIsGift] = useState<boolean>(Boolean(giftDefault))
+  const [recipientName, setRecipientName] = useState(giftDefault?.recipientName ?? "")
+  const [recipientPhone, setRecipientPhone] = useState(giftDefault?.recipientPhone ?? "")
+  const [giftMessage, setGiftMessage] = useState(giftDefault?.message ?? "")
+  const [giftErrors, setGiftErrors] = useState<{ recipientName?: string; recipientPhone?: string }>({})
 
   useEffect(() => {
     if (defaultValues) reset({ ...defaultValues })
@@ -90,16 +105,49 @@ export function AddressStep({
 
   const cepValue = watch("cep") ?? ""
 
+  const validateGift = (): GiftData | null | "invalid" => {
+    if (!isGift) return null
+
+    const errs: { recipientName?: string; recipientPhone?: string } = {}
+    if (recipientName.trim().length < 3) {
+      errs.recipientName = "Nome de quem vai receber é obrigatório"
+    }
+    const phoneDigits = unmaskDigits(recipientPhone)
+    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      errs.recipientPhone = "WhatsApp inválido"
+    }
+    if (errs.recipientName || errs.recipientPhone) {
+      setGiftErrors(errs)
+      return "invalid"
+    }
+    setGiftErrors({})
+    return {
+      recipientName: recipientName.trim(),
+      recipientPhone,
+      message: giftMessage.trim(),
+    }
+  }
+
+  const onValid = (data: AddressData) => {
+    const gift = validateGift()
+    if (gift === "invalid") return
+    onSubmit(data, gift)
+  }
+
+  const submitDisabled = !isValid
+
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onValid)}
       className="animate-step-in space-y-6 rounded-2xl border border-border bg-white p-5 shadow-sm md:p-7"
     >
       <header className="flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-soft text-primary">
           <MapPin className="h-4 w-4" />
         </span>
-        <h2 className="text-lg font-bold text-primary md:text-xl">Onde você quer receber?</h2>
+        <h2 className="text-lg font-bold text-primary md:text-xl">
+          {isGift ? "Pra onde mandamos?" : "Onde você quer receber?"}
+        </h2>
       </header>
 
       <div className="grid gap-4">
@@ -159,6 +207,101 @@ export function AddressStep({
         </Field>
       </div>
 
+      {/* Seção de presente — chamativa mas não intrusiva */}
+      <div
+        className={cn(
+          "rounded-xl border-2 p-4 transition",
+          isGift
+            ? "border-primary bg-primary-soft/40"
+            : "border-dashed border-primary/40 bg-primary-soft/10",
+        )}
+      >
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={isGift}
+            onChange={(e) => setIsGift(e.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-sm font-bold text-primary md:text-base">
+              <Gift className="h-4 w-4" />
+              É um presente?
+              <Sparkles className="h-3 w-3 text-primary/70" />
+            </span>
+            <span className="mt-0.5 block text-xs leading-snug text-muted-foreground md:text-sm">
+              Mande pra alguém especial com uma mensagem personalizada. Perfeito pra surpreender no Dia das Mães 💜
+            </span>
+          </span>
+        </label>
+
+        {isGift && (
+          <div className="mt-4 space-y-4 border-t border-primary/20 pt-4">
+            <Field label="Nome de quem vai receber" required error={giftErrors.recipientName}>
+              <input
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Maria da Silva"
+                autoComplete="off"
+              />
+            </Field>
+
+            <Field
+              label="WhatsApp de quem vai receber"
+              required
+              error={giftErrors.recipientPhone}
+            >
+              <input
+                value={recipientPhone}
+                onChange={(e) => setRecipientPhone(maskPhone(e.target.value))}
+                className={inputClass}
+                placeholder="(00) 00000-0000"
+                inputMode="numeric"
+                autoComplete="off"
+              />
+            </Field>
+
+            <div>
+              <span className="mb-2 block text-xs font-semibold text-muted-foreground">
+                Mensagem do cartão (opcional)
+              </span>
+              <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                {giftMessageTemplates.map((tpl) => {
+                  const selected = giftMessage === tpl
+                  return (
+                    <button
+                      key={tpl}
+                      type="button"
+                      onClick={() => setGiftMessage(tpl)}
+                      className={cn(
+                        "rounded-lg border-2 px-3 py-2 text-left text-xs transition md:text-sm",
+                        selected
+                          ? "border-primary bg-primary-soft text-primary"
+                          : "border-border bg-white text-foreground hover:border-primary/40",
+                      )}
+                    >
+                      {tpl}
+                    </button>
+                  )
+                })}
+              </div>
+              <textarea
+                value={giftMessage}
+                onChange={(e) => setGiftMessage(e.target.value.slice(0, 280))}
+                className={cn(inputClass, "resize-none")}
+                rows={3}
+                placeholder="Ou escreva sua própria mensagem aqui..."
+                maxLength={280}
+              />
+              <div className="mt-1 text-right text-[10px] text-muted-foreground">
+                {giftMessage.length}/280
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Seletor de frete */}
       <div className="border-t border-border pt-5">
         <ShippingSelector value={shippingMethod} onChange={onShippingChange} />
@@ -175,10 +318,10 @@ export function AddressStep({
         </button>
         <button
           type="submit"
-          disabled={!isValid}
+          disabled={submitDisabled}
           className={cn(
             "rounded-full bg-success px-6 py-3 text-sm font-bold text-white shadow-sm transition md:flex-1",
-            isValid ? "hover:brightness-95" : "cursor-not-allowed opacity-50",
+            !submitDisabled ? "hover:brightness-95" : "cursor-not-allowed opacity-50",
           )}
         >
           Continuar para pagamento →

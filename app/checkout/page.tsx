@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react"
 import { getSavedAddress, saveAddress } from "@/lib/address-store"
 import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
-import type { AddressData, DeliveryData, IdentificationData } from "@/lib/checkout-types"
+import type { AddressData, DeliveryData, GiftData, IdentificationData } from "@/lib/checkout-types"
 import { generateCPF } from "@/lib/cpf"
 import { getShippingOption, type ShippingMethod } from "@/lib/data"
 import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from "@/lib/order-store"
@@ -36,6 +36,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<InternalStep>(1)
   const [identification, setIdentification] = useState<IdentificationData | null>(null)
   const [address, setAddress] = useState<AddressData | null>(null)
+  const [gift, setGift] = useState<GiftData | null>(null)
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard")
   const [confirmedOrder, setConfirmedOrder] = useState<SavedOrder | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -103,8 +104,9 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const handleAddressSubmit = (data: AddressData) => {
+  const handleAddressSubmit = (data: AddressData, giftData: GiftData | null) => {
     setAddress(data)
+    setGift(giftData)
     if (identification) {
       saveAddress({ ...identification, ...data })
     }
@@ -132,6 +134,7 @@ export default function CheckoutPage() {
       subtotal,
       total,
       delivery,
+      gift,
       payment: paymentData,
       shipping: { method: shippingMethod, price: shippingPrice },
       paymentStatus: isPix ? "pending" : "approved",
@@ -263,6 +266,7 @@ export default function CheckoutPage() {
         {step === 2 && (
           <AddressStep
             defaultValues={addressDefaults}
+            giftDefault={gift}
             onSubmit={handleAddressSubmit}
             onBack={() => setStep(1)}
             shippingMethod={shippingMethod}

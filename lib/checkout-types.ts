@@ -46,3 +46,38 @@ export type AddressData = z.infer<typeof addressSchema>
 
 /** Dados completos de entrega: identificação + endereço. Usado pelo order-store. */
 export type DeliveryData = IdentificationData & AddressData
+
+// =====================================================================
+// Gift (opcional — pedido como presente)
+// =====================================================================
+
+/**
+ * Quando o pedido é um presente, o cliente quer:
+ *   - Mandar pra OUTRA pessoa (recipient_name, recipient_phone — motoboy entrega
+ *     olhando esses dados, não o nome do comprador)
+ *   - Anexar uma mensagem que aparece no email + na cozinha pra imprimir/escrever
+ *
+ * Endereço de entrega continua no DeliveryData — pode ser o do destinatário
+ * ou o do próprio cliente (caso queira buscar e levar).
+ */
+export const giftSchema = z.object({
+  recipientName: z.string().min(3, "Nome de quem vai receber é obrigatório"),
+  recipientPhone: z
+    .string()
+    .min(1, "WhatsApp do destinatário é obrigatório")
+    .refine((v) => {
+      const digits = unmaskDigits(v)
+      return digits.length === 10 || digits.length === 11
+    }, "WhatsApp inválido"),
+  message: z.string().max(280, "Mensagem muito longa").optional().or(z.literal("")),
+})
+
+export type GiftData = z.infer<typeof giftSchema>
+
+/** Templates prontos pra mensagem do presente. */
+export const giftMessageTemplates = [
+  "Mãe, te amo demais 💜 Obrigado por tudo!",
+  "Pra mulher mais especial da minha vida 💜",
+  "Você é incrível, espero que goste!",
+  "Um docinho pra adoçar seu dia ✨",
+] as const
