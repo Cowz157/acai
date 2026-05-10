@@ -20,6 +20,7 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
     value > 0 && !isPreset ? value.toFixed(2).replace(".", ",") : "",
   )
   const [customError, setCustomError] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState<boolean>(false)
 
   const selectPreset = (amount: number) => {
     if (value === amount) {
@@ -66,25 +67,38 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
     }
   }
 
+  if (dismissed && value === 0) {
+    return (
+      <button
+        type="button"
+        onClick={() => setDismissed(false)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 bg-white px-3 py-2 text-xs text-muted-foreground transition hover:border-primary/60 hover:text-primary"
+      >
+        <Heart className="h-3.5 w-3.5" />
+        Mudei de ideia, quero somar pra causa
+      </button>
+    )
+  }
+
   return (
-    <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary-soft/30 to-white p-4 md:p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
-          <Heart className="h-4 w-4 fill-current" />
+    <div className="rounded-lg border border-primary/20 bg-white p-3 md:p-4">
+      <div className="flex items-start gap-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Heart className="h-3.5 w-3.5 fill-current" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-primary md:text-base">
+          <p className="text-sm font-bold text-foreground">
             Sua compra já ajuda. Que tal somar mais?
           </p>
-          <p className="mt-1 text-xs leading-snug text-muted-foreground md:text-[13px]">
-            A gente leva comida, dinheiro e ajuda direta pra famílias em situação difícil — toda
-            semana. <strong className="text-foreground">100% do que você somar</strong> entra na
+          <p className="mt-1 text-xs leading-snug text-muted-foreground">
+            Toda semana a gente leva comida, dinheiro e ajuda direta pra famílias em situação
+            difícil. <strong className="text-foreground">100% do que você somar</strong> entra na
             próxima rodada de doações.
           </p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {PRESETS.map((amount) => {
           const selected = value === amount && !customMode
           return (
@@ -94,14 +108,14 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
               onClick={() => selectPreset(amount)}
               aria-pressed={selected}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition active:scale-95",
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition active:scale-95 md:text-sm",
                 selected
-                  ? "border-primary bg-primary text-white shadow-sm"
-                  : "border-primary/40 bg-white text-primary hover:border-primary hover:bg-primary-soft",
+                  ? "border-primary bg-primary text-white"
+                  : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary-soft",
               )}
             >
-              {selected && <Check className="h-3.5 w-3.5" />}
-              + {formatMoneyBR(amount)}
+              {selected && <Check className="h-3 w-3" />}
+              {formatMoneyBR(amount)}
             </button>
           )
         })}
@@ -110,21 +124,21 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
           onClick={enterCustomMode}
           aria-pressed={customMode}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-sm font-bold transition active:scale-95",
+            "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition active:scale-95 md:text-sm",
             customMode
-              ? "border-primary bg-primary text-white shadow-sm"
-              : "border-primary/40 bg-white text-primary hover:border-primary hover:bg-primary-soft",
+              ? "border-primary bg-primary text-white"
+              : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary-soft",
           )}
         >
-          {customMode && <Check className="h-3.5 w-3.5" />}
+          {customMode && <Check className="h-3 w-3" />}
           Outro valor
         </button>
       </div>
 
       {customMode && (
-        <div className="mt-3">
-          <div className="flex items-center gap-2 rounded-lg border-2 border-primary bg-white px-3 py-2">
-            <span className="text-sm font-bold text-muted-foreground">R$</span>
+        <div className="mt-2.5">
+          <div className="flex items-center gap-2 rounded-lg border border-primary bg-white px-3 py-2">
+            <span className="text-sm font-semibold text-muted-foreground">R$</span>
             <input
               autoFocus
               value={customRaw}
@@ -132,7 +146,7 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
               onBlur={handleCustomBlur}
               placeholder="0,00"
               inputMode="decimal"
-              className="flex-1 bg-transparent text-sm font-bold text-foreground outline-none"
+              className="flex-1 bg-transparent text-sm font-semibold text-foreground outline-none"
             />
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -144,10 +158,10 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
         </div>
       )}
 
-      {value > 0 && (
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2 text-xs">
+      {value > 0 ? (
+        <div className="mt-3 flex items-center justify-between rounded-md bg-primary-soft px-3 py-1.5 text-xs">
           <span className="font-semibold text-primary">
-            💜 {formatMoneyBR(value)} adicionado pra próxima rodada
+            💜 {formatMoneyBR(value)} adicionado pra causa
           </span>
           <button
             type="button"
@@ -162,6 +176,14 @@ export function DonationSection({ value, onChange }: DonationSectionProps) {
             remover
           </button>
         </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="mt-2.5 block w-full text-center text-[11px] text-muted-foreground transition hover:text-foreground"
+        >
+          Talvez depois, obrigado
+        </button>
       )}
     </div>
   )
