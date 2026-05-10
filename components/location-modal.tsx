@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
@@ -30,12 +30,31 @@ interface SearchableSelectProps {
 
 function SearchableSelect({ value, onChange, options, placeholder }: SearchableSelectProps) {
   const [search, setSearch] = useState("")
+  const listRef = useRef<HTMLDivElement>(null)
+  const selectedRef = useRef<HTMLButtonElement>(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return options
     return options.filter((o) => o.toLowerCase().includes(q))
   }, [search, options])
+
+  // Quando a lista carrega com algo já selecionado, rola até o item — cliente
+  // não precisa scrollar manualmente pra confirmar o que tá marcado.
+  useEffect(() => {
+    if (!value || !selectedRef.current || !listRef.current) return
+    const list = listRef.current
+    const item = selectedRef.current
+    const itemTop = item.offsetTop
+    const itemBottom = itemTop + item.offsetHeight
+    const viewTop = list.scrollTop
+    const viewBottom = viewTop + list.clientHeight
+    if (itemTop < viewTop || itemBottom > viewBottom) {
+      list.scrollTop = itemTop - list.clientHeight / 2 + item.offsetHeight / 2
+    }
+    // Mount-only: não queremos rolar quando user clica numa opção já visível
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div>
@@ -62,24 +81,33 @@ function SearchableSelect({ value, onChange, options, placeholder }: SearchableS
         )}
       </div>
 
-      <div className="scrollbar-visible mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white">
+      <div
+        ref={listRef}
+        className="scrollbar-visible mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white"
+      >
         {filtered.length === 0 ? (
           <div className="px-3 py-4 text-center">
-            <p className="text-xs italic text-muted-foreground">
-              Nada na lista bate com{" "}
-              <strong className="not-italic text-foreground">"{search.trim()}"</strong>
-            </p>
-            {search.trim() && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(search.trim())
-                  setSearch("")
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110"
-              >
-                Usar &ldquo;{search.trim()}&rdquo; mesmo assim
-              </button>
+            {search.trim() ? (
+              <>
+                <p className="text-xs italic text-muted-foreground">
+                  Nada na lista bate com{" "}
+                  <strong className="not-italic text-foreground">"{search.trim()}"</strong>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(search.trim())
+                    setSearch("")
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110"
+                >
+                  Usar &ldquo;{search.trim()}&rdquo; mesmo assim
+                </button>
+              </>
+            ) : (
+              <p className="text-xs italic text-muted-foreground">
+                Lista vazia — digite no campo de busca
+              </p>
             )}
           </div>
         ) : (
@@ -89,6 +117,7 @@ function SearchableSelect({ value, onChange, options, placeholder }: SearchableS
               return (
                 <li key={o}>
                   <button
+                    ref={selected ? selectedRef : null}
                     type="button"
                     onClick={() => onChange(o)}
                     className={cn(
@@ -127,9 +156,11 @@ export function LocationModal() {
   // Inicia fechado pra evitar flash no primeiro render (SSR) e abre só após verificar localStorage.
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>(0)
-  const [state, setState] = useState("Rio de Janeiro")
+  // Defaults vazios pra não mostrar item pré-selecionado quando IP falha — cliente
+  // numa VPN/fora do BR via fluxo manual NÃO escolheu nada ainda, lista deve refletir.
+  const [state, setState] = useState("")
   const [stateCode, setStateCode] = useState<string | null>(null)
-  const [city, setCity] = useState("Angra dos Reis")
+  const [city, setCity] = useState("")
   /** Marca true quando o estado/cidade foram preenchidos via IP (não manual). */
   const [autoDetected, setAutoDetected] = useState(false)
 
@@ -190,7 +221,7 @@ export function LocationModal() {
 
   if (!open) return null
 
-  const cities = citiesByState[state] ?? ["Selecione sua cidade"]
+  const cities = citiesByState[state] ?? []
 
   return (
     <div
@@ -237,8 +268,9 @@ export function LocationModal() {
                 type="button"
                 disabled={!state.trim()}
                 onClick={() => {
-                  const newCities = citiesByState[state] ?? []
-                  setCity(newCities[0] ?? "")
+                  // Não auto-seleciona primeira cidade — cliente precisa escolher
+                  // ativamente, senão volta o mesmo bug do default fantasma.
+                  setCity("")
                   setStep(2)
                 }}
                 className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
