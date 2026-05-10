@@ -47,15 +47,15 @@ export function ShippingSelector({ value, onChange }: ShippingSelectorProps) {
                   {ICONS[opt.id]}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold text-foreground">{opt.label}</span>
+                  <div className="text-sm font-bold text-foreground">{opt.label}</div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                    <span>{opt.description}</span>
                     {opt.badge && (
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                      <span className="inline-flex items-center rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                         {opt.badge}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">{opt.description}</div>
                 </div>
                 <div className="shrink-0 text-right">
                   {opt.price === 0 ? (
