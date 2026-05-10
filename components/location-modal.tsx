@@ -1,16 +1,25 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Check, CheckCircle2, Loader2, MapPin, Search } from "lucide-react"
+import { Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
 import { cn } from "@/lib/utils"
 
 /**
- * Combobox com busca: input no topo + lista filtrada e scrollable abaixo.
- * Aceita texto livre — se cliente digitar algo fora da lista, valor é
- * preservado e o empty-state explica que pode prosseguir.
+ * Combobox com 2 caminhos paralelos:
+ *   1) Buscar (input no topo) — filtra a lista visível conforme digita
+ *   2) Scrollar a lista cheia — sempre disponível, mesmo com valor já selecionado
+ *
+ * Search e value são estados INDEPENDENTES: digitar na busca não muda o valor
+ * selecionado, e selecionar um item não preenche/limpa a busca. Isso permite
+ * que cliente já com "São Paulo" selecionado possa, sem perder a seleção,
+ * digitar "Rio" pra ver outras opções e trocar. Item selecionado fica
+ * destacado com bg + check; lista preserva ordem original.
+ *
+ * Quando search não bate com nada: botão pra usar o texto digitado como valor
+ * (aceita cidade/estado fora da lista).
  */
 interface SearchableSelectProps {
   value: string
@@ -20,11 +29,13 @@ interface SearchableSelectProps {
 }
 
 function SearchableSelect({ value, onChange, options, placeholder }: SearchableSelectProps) {
+  const [search, setSearch] = useState("")
+
   const filtered = useMemo(() => {
-    const q = value.trim().toLowerCase()
+    const q = search.trim().toLowerCase()
     if (!q) return options
     return options.filter((o) => o.toLowerCase().includes(q))
-  }, [value, options])
+  }, [search, options])
 
   return (
     <div>
@@ -32,20 +43,45 @@ function SearchableSelect({ value, onChange, options, placeholder }: SearchableS
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder={placeholder}
           autoFocus
           autoComplete="off"
-          className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-3 text-sm font-medium text-foreground outline-none focus:border-primary"
+          className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-9 text-sm font-medium text-foreground outline-none focus:border-primary"
         />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            aria-label="Limpar busca"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
-      <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-white">
+
+      <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white">
         {filtered.length === 0 ? (
-          <p className="px-3 py-3 text-center text-xs italic text-muted-foreground">
-            Nada na lista bate com isso — pode prosseguir com{" "}
-            <strong className="text-foreground">"{value.trim()}"</strong> mesmo assim
-          </p>
+          <div className="px-3 py-4 text-center">
+            <p className="text-xs italic text-muted-foreground">
+              Nada na lista bate com{" "}
+              <strong className="not-italic text-foreground">"{search.trim()}"</strong>
+            </p>
+            {search.trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(search.trim())
+                  setSearch("")
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110"
+              >
+                Usar &ldquo;{search.trim()}&rdquo; mesmo assim
+              </button>
+            )}
+          </div>
         ) : (
           <ul className="divide-y divide-border/50">
             {filtered.map((o) => {
