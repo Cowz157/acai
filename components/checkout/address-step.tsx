@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowLeft, Gift, Loader2, MapPin, Sparkles } from "lucide-react"
+import { ArrowLeft, Check, Gift, Loader2, MapPin, Sparkles } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { fetchCEP } from "@/lib/cep-api"
@@ -12,7 +12,7 @@ import {
   type GiftData,
 } from "@/lib/checkout-types"
 import { type ShippingMethod } from "@/lib/data"
-import { maskCEP, maskPhone, unmaskDigits } from "@/lib/format"
+import { maskCEP, unmaskDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ShippingSelector } from "./shipping-selector"
 
@@ -74,9 +74,8 @@ export function AddressStep({
   // Estado da seção de presente (validação manual no submit)
   const [isGift, setIsGift] = useState<boolean>(Boolean(giftDefault))
   const [recipientName, setRecipientName] = useState(giftDefault?.recipientName ?? "")
-  const [recipientPhone, setRecipientPhone] = useState(giftDefault?.recipientPhone ?? "")
   const [giftMessage, setGiftMessage] = useState(giftDefault?.message ?? "")
-  const [giftErrors, setGiftErrors] = useState<{ recipientName?: string; recipientPhone?: string }>({})
+  const [giftErrors, setGiftErrors] = useState<{ recipientName?: string }>({})
 
   useEffect(() => {
     if (defaultValues) reset({ ...defaultValues })
@@ -108,22 +107,17 @@ export function AddressStep({
   const validateGift = (): GiftData | null | "invalid" => {
     if (!isGift) return null
 
-    const errs: { recipientName?: string; recipientPhone?: string } = {}
+    const errs: { recipientName?: string } = {}
     if (recipientName.trim().length < 3) {
       errs.recipientName = "Nome de quem vai receber é obrigatório"
     }
-    const phoneDigits = unmaskDigits(recipientPhone)
-    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
-      errs.recipientPhone = "WhatsApp inválido"
-    }
-    if (errs.recipientName || errs.recipientPhone) {
+    if (errs.recipientName) {
       setGiftErrors(errs)
       return "invalid"
     }
     setGiftErrors({})
     return {
       recipientName: recipientName.trim(),
-      recipientPhone,
       message: giftMessage.trim(),
     }
   }
@@ -236,7 +230,7 @@ export function AddressStep({
         </label>
 
         {isGift && (
-          <div className="mt-4 space-y-4 border-t border-primary/20 pt-4">
+          <div className="mt-4 space-y-5 border-t border-primary/20 pt-4">
             <Field label="Nome de quem vai receber" required error={giftErrors.recipientName}>
               <input
                 value={recipientName}
@@ -247,45 +241,45 @@ export function AddressStep({
               />
             </Field>
 
-            <Field
-              label="WhatsApp de quem vai receber"
-              required
-              error={giftErrors.recipientPhone}
-            >
-              <input
-                value={recipientPhone}
-                onChange={(e) => setRecipientPhone(maskPhone(e.target.value))}
-                className={inputClass}
-                placeholder="(00) 00000-0000"
-                inputMode="numeric"
-                autoComplete="off"
-              />
-            </Field>
-
             <div>
-              <span className="mb-2 block text-xs font-semibold text-muted-foreground">
-                Mensagem do cartão (opcional)
-              </span>
-              <div className="mb-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+              <div className="mb-1 flex items-baseline justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  Mensagem do cartão{" "}
+                  <span className="font-normal text-muted-foreground/70">(opcional)</span>
+                </span>
+              </div>
+
+              <p className="mb-2 text-[11px] font-medium text-primary/80 md:text-xs">
+                ✨ Toque numa sugestão pra usar — ou escreva a sua abaixo
+              </p>
+
+              <div className="mb-3 flex flex-wrap gap-2">
                 {giftMessageTemplates.map((tpl) => {
                   const selected = giftMessage === tpl
                   return (
                     <button
                       key={tpl}
                       type="button"
-                      onClick={() => setGiftMessage(tpl)}
+                      onClick={() => setGiftMessage(selected ? "" : tpl)}
+                      aria-pressed={selected}
                       className={cn(
-                        "rounded-lg border-2 px-3 py-2 text-left text-xs transition md:text-sm",
+                        "group inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-medium transition active:scale-95 md:text-sm",
                         selected
-                          ? "border-primary bg-primary-soft text-primary"
-                          : "border-border bg-white text-foreground hover:border-primary/40",
+                          ? "border-primary bg-primary text-white shadow-sm"
+                          : "border-primary/30 bg-white text-primary hover:border-primary hover:bg-primary-soft",
                       )}
                     >
-                      {tpl}
+                      {selected ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <span className="text-primary/60 group-hover:text-primary">+</span>
+                      )}
+                      <span>{tpl}</span>
                     </button>
                   )
                 })}
               </div>
+
               <textarea
                 value={giftMessage}
                 onChange={(e) => setGiftMessage(e.target.value.slice(0, 280))}

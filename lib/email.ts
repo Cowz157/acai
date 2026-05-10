@@ -126,11 +126,8 @@ function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; h
       <p style="margin: 0 0 8px 0; color: #6b21a8; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
         🎁 Presente para
       </p>
-      <p style="margin: 0 0 6px 0; color: #1a1a1a; font-size: 18px; font-weight: 800;">
+      <p style="margin: 0 0 ${ctx.gift!.message ? "12px" : "0"} 0; color: #1a1a1a; font-size: 18px; font-weight: 800;">
         ${escapeHtml(ctx.gift!.recipientName)}
-      </p>
-      <p style="margin: 0 0 ${ctx.gift!.message ? "12px" : "0"} 0; color: #6b7280; font-size: 13px;">
-        WhatsApp: ${escapeHtml(ctx.gift!.recipientPhone)}
       </p>
       ${
         ctx.gift!.message
@@ -201,7 +198,7 @@ function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; h
   `
 
   const giftText = isGift
-    ? `\n🎁 Presente para: ${ctx.gift!.recipientName}\nWhatsApp: ${ctx.gift!.recipientPhone}${
+    ? `\n🎁 Presente para: ${ctx.gift!.recipientName}${
         ctx.gift!.message ? `\nMensagem: "${ctx.gift!.message}"` : ""
       }\n`
     : ""

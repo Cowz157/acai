@@ -53,8 +53,8 @@ export type DeliveryData = IdentificationData & AddressData
 
 /**
  * Quando o pedido é um presente, o cliente quer:
- *   - Mandar pra OUTRA pessoa (recipient_name, recipient_phone — motoboy entrega
- *     olhando esses dados, não o nome do comprador)
+ *   - Mandar pra OUTRA pessoa (recipient_name — motoboy entrega olhando esse
+ *     nome, não o do comprador)
  *   - Anexar uma mensagem que aparece no email + na cozinha pra imprimir/escrever
  *
  * Endereço de entrega continua no DeliveryData — pode ser o do destinatário
@@ -62,13 +62,6 @@ export type DeliveryData = IdentificationData & AddressData
  */
 export const giftSchema = z.object({
   recipientName: z.string().min(3, "Nome de quem vai receber é obrigatório"),
-  recipientPhone: z
-    .string()
-    .min(1, "WhatsApp do destinatário é obrigatório")
-    .refine((v) => {
-      const digits = unmaskDigits(v)
-      return digits.length === 10 || digits.length === 11
-    }, "WhatsApp inválido"),
   message: z.string().max(280, "Mensagem muito longa").optional().or(z.literal("")),
 })
 
