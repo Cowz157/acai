@@ -51,15 +51,15 @@ export function ShippingSelector({ value, onChange }: ShippingSelectorProps) {
                   <div className="mt-0.5 text-xs text-muted-foreground">{opt.description}</div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  {opt.price === 0 ? (
-                    <span className="text-sm font-extrabold text-success">GRÁTIS</span>
-                  ) : (
-                    <span className="text-sm font-extrabold text-foreground">+ {formatMoneyBR(opt.price)}</span>
-                  )}
                   {opt.badge && (
                     <span className="inline-flex items-center rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                       {opt.badge}
                     </span>
+                  )}
+                  {opt.price === 0 ? (
+                    <span className="text-sm font-extrabold text-success">GRÁTIS</span>
+                  ) : (
+                    <span className="text-sm font-extrabold text-foreground">+ {formatMoneyBR(opt.price)}</span>
                   )}
                 </div>
               </div>
