@@ -117,28 +117,36 @@ export function LocationModal() {
               Procure a loja mais próxima de você!
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Selecione seu <span className="font-semibold text-danger">estado</span>:
+              Digite ou selecione seu <span className="font-semibold text-danger">estado</span>:
             </p>
-            <select
+            <input
+              type="text"
+              list="state-suggestions"
               value={state}
               onChange={(e) => setState(e.target.value)}
+              placeholder="Ex: São Paulo"
+              autoFocus
+              autoComplete="off"
               className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-primary"
-            >
+            />
+            <datalist id="state-suggestions">
               {states.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
+                <option key={s} value={s} />
               ))}
-            </select>
+            </datalist>
+            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+              Pode digitar mesmo se não estiver na lista
+            </p>
             <div className="mt-5 flex justify-center">
               <button
                 type="button"
+                disabled={!state.trim()}
                 onClick={() => {
-                  const newCities = citiesByState[state] ?? ["Angra dos Reis"]
-                  setCity(newCities[0])
+                  const newCities = citiesByState[state] ?? []
+                  setCity(newCities[0] ?? "")
                   setStep(2)
                 }}
-                className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95"
+                className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Próximo
               </button>
@@ -157,24 +165,32 @@ export function LocationModal() {
               Estamos quase lá...
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Agora, selecione sua <span className="font-semibold text-danger">cidade</span>:
+              Agora, digite sua <span className="font-semibold text-danger">cidade</span>:
             </p>
-            <select
+            <input
+              type="text"
+              list="city-suggestions"
               value={city}
               onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex: Angra dos Reis"
+              autoFocus
+              autoComplete="off"
               className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-primary"
-            >
+            />
+            <datalist id="city-suggestions">
               {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c} />
               ))}
-            </select>
+            </datalist>
+            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+              Pode digitar mesmo se não estiver na lista
+            </p>
             <div className="mt-5 flex justify-center">
               <button
                 type="button"
+                disabled={!city.trim()}
                 onClick={() => setStep(3)}
-                className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95"
+                className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Procurar loja mais próxima!
               </button>
