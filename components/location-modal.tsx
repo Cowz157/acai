@@ -1,10 +1,79 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { CheckCircle2, Loader2, MapPin } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Check, CheckCircle2, Loader2, MapPin, Search } from "lucide-react"
 import { citiesByState, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
+import { cn } from "@/lib/utils"
+
+/**
+ * Combobox com busca: input no topo + lista filtrada e scrollable abaixo.
+ * Aceita texto livre — se cliente digitar algo fora da lista, valor é
+ * preservado e o empty-state explica que pode prosseguir.
+ */
+interface SearchableSelectProps {
+  value: string
+  onChange: (next: string) => void
+  options: string[]
+  placeholder: string
+}
+
+function SearchableSelect({ value, onChange, options, placeholder }: SearchableSelectProps) {
+  const filtered = useMemo(() => {
+    const q = value.trim().toLowerCase()
+    if (!q) return options
+    return options.filter((o) => o.toLowerCase().includes(q))
+  }, [value, options])
+
+  return (
+    <div>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus
+          autoComplete="off"
+          className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-3 text-sm font-medium text-foreground outline-none focus:border-primary"
+        />
+      </div>
+      <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-white">
+        {filtered.length === 0 ? (
+          <p className="px-3 py-3 text-center text-xs italic text-muted-foreground">
+            Nada na lista bate com isso — pode prosseguir com{" "}
+            <strong className="text-foreground">"{value.trim()}"</strong> mesmo assim
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/50">
+            {filtered.map((o) => {
+              const selected = o === value
+              return (
+                <li key={o}>
+                  <button
+                    type="button"
+                    onClick={() => onChange(o)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition",
+                      selected
+                        ? "bg-primary-soft font-bold text-primary"
+                        : "text-foreground hover:bg-muted",
+                    )}
+                  >
+                    <span className="truncate">{o}</span>
+                    {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Steps:
@@ -117,26 +186,16 @@ export function LocationModal() {
               Procure a loja mais próxima de você!
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Digite ou selecione seu <span className="font-semibold text-danger">estado</span>:
+              Busque ou digite seu <span className="font-semibold text-danger">estado</span>:
             </p>
-            <input
-              type="text"
-              list="state-suggestions"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              placeholder="Ex: São Paulo"
-              autoFocus
-              autoComplete="off"
-              className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-primary"
-            />
-            <datalist id="state-suggestions">
-              {states.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-              Pode digitar mesmo se não estiver na lista
-            </p>
+            <div className="mt-4">
+              <SearchableSelect
+                value={state}
+                onChange={setState}
+                options={states}
+                placeholder="Buscar estado..."
+              />
+            </div>
             <div className="mt-5 flex justify-center">
               <button
                 type="button"
@@ -165,26 +224,16 @@ export function LocationModal() {
               Estamos quase lá...
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Agora, digite sua <span className="font-semibold text-danger">cidade</span>:
+              Agora, busque sua <span className="font-semibold text-danger">cidade</span>:
             </p>
-            <input
-              type="text"
-              list="city-suggestions"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Ex: Angra dos Reis"
-              autoFocus
-              autoComplete="off"
-              className="mt-4 w-full rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-foreground outline-none focus:border-primary"
-            />
-            <datalist id="city-suggestions">
-              {cities.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-              Pode digitar mesmo se não estiver na lista
-            </p>
+            <div className="mt-4">
+              <SearchableSelect
+                value={city}
+                onChange={setCity}
+                options={cities}
+                placeholder="Buscar cidade..."
+              />
+            </div>
             <div className="mt-5 flex justify-center">
               <button
                 type="button"
