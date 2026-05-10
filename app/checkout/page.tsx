@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [identification, setIdentification] = useState<IdentificationData | null>(null)
   const [address, setAddress] = useState<AddressData | null>(null)
   const [gift, setGift] = useState<GiftData | null>(null)
+  const [donationAmount, setDonationAmount] = useState<number>(0)
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard")
   const [confirmedOrder, setConfirmedOrder] = useState<SavedOrder | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -51,7 +52,7 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items])
   const shippingPrice = getShippingOption(shippingMethod).price
-  const total = subtotal + shippingPrice
+  const total = subtotal + shippingPrice + donationAmount
 
   // Defaults dos forms — combina endereço salvo + dados do usuário logado
   const identificationDefaults: Partial<IdentificationData> | undefined = useMemo(() => {
@@ -135,6 +136,7 @@ export default function CheckoutPage() {
       total,
       delivery,
       gift,
+      donationAmount,
       payment: paymentData,
       shipping: { method: shippingMethod, price: shippingPrice },
       paymentStatus: isPix ? "pending" : "approved",
@@ -255,6 +257,7 @@ export default function CheckoutPage() {
             subtotal={subtotal}
             shippingPrice={shippingPrice}
             total={total}
+            donationAmount={donationAmount}
             defaultOpen={false}
           />
         )}
@@ -283,6 +286,8 @@ export default function CheckoutPage() {
             loading={paymentLoading}
             attempt={paymentAttempt}
             errorMessage={paymentError}
+            donationAmount={donationAmount}
+            onDonationChange={setDonationAmount}
           />
         )}
 

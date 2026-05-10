@@ -22,6 +22,7 @@ interface CreateOrderBody {
   pix_codigo?: string | null
   pix_expires_at?: string | null
   gift?: unknown
+  donation_amount?: number
 }
 
 /**

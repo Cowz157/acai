@@ -11,6 +11,7 @@ interface OrderSummaryProps {
   subtotal: number
   shippingPrice: number
   total: number
+  donationAmount?: number
   defaultOpen?: boolean
 }
 
@@ -19,6 +20,7 @@ export function OrderSummary({
   subtotal,
   shippingPrice,
   total,
+  donationAmount = 0,
   defaultOpen = false,
 }: OrderSummaryProps) {
   const [open, setOpen] = useState(defaultOpen)
@@ -74,6 +76,12 @@ export function OrderSummary({
                 <span className="font-bold text-success">Grátis</span>
               )}
             </div>
+            {donationAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-primary">💜 Doação solidária</span>
+                <span className="font-semibold text-primary tabular-nums">+ {formatMoneyBR(donationAmount)}</span>
+              </div>
+            )}
             <div className="flex items-baseline justify-between border-t border-border pt-2">
               <span className="font-bold text-foreground">Total</span>
               <span className="text-base font-extrabold text-success tabular-nums">{formatMoneyBR(total)}</span>

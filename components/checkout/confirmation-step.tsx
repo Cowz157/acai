@@ -174,6 +174,12 @@ export function ConfirmationStep({ order: initialOrder, items }: ConfirmationSte
               <span className="font-bold text-success">Grátis</span>
             )}
           </div>
+          {order.donationAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-primary">💜 Doação solidária</span>
+              <span className="font-semibold text-primary tabular-nums">+ {formatMoneyBR(order.donationAmount)}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between border-t border-border pt-2">
             <span className="text-sm font-bold text-foreground">Total</span>
             <span className="text-xl font-extrabold text-success">{formatMoneyBR(order.total)}</span>

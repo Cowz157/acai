@@ -72,6 +72,7 @@ interface OrderEmailContext {
   shippingMethod: "standard" | "express"
   etaMinutes: number
   gift: GiftData | null
+  donationAmount: number
 }
 
 function baseLayout(content: string, preheader = ""): string {
@@ -178,11 +179,29 @@ function orderConfirmationTemplate(ctx: OrderEmailContext): { subject: string; h
           ${ctx.shippingPrice > 0 ? `+ ${formatMoney(ctx.shippingPrice)}` : "Grátis"}
         </td>
       </tr>
+      ${
+        ctx.donationAmount > 0
+          ? `<tr>
+        <td style="padding: 0 0 8px 0; color: #6b21a8; font-weight: 600;">💜 Doação solidária</td>
+        <td style="padding: 0 0 8px 0; text-align: right; color: #6b21a8; font-weight: 700;">+ ${formatMoney(ctx.donationAmount)}</td>
+      </tr>`
+          : ""
+      }
       <tr>
         <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; font-weight: bold; color: #1a1a1a;">Total</td>
         <td style="padding: 8px 0 0 0; border-top: 1px solid #e5e7eb; text-align: right; font-weight: 800; color: #16a34a; font-size: 18px;">${formatMoney(ctx.total)}</td>
       </tr>
     </table>
+
+    ${
+      ctx.donationAmount > 0
+        ? `<div style="background-color: #fdf4ff; border-radius: 8px; padding: 12px 16px; margin: 16px 0; text-align: center;">
+      <p style="margin: 0; color: #6b21a8; font-size: 13px; font-weight: 600;">
+        💜 Obrigado por somar ${formatMoney(ctx.donationAmount)} pra próxima rodada de doações.
+      </p>
+    </div>`
+        : ""
+    }
 
     <h3 style="margin: 24px 0 8px 0; color: #1a1a1a; font-size: 16px;">${isGift ? "Endereço de entrega do presente" : "Endereço de entrega"}</h3>
     <p style="margin: 0; color: #1a1a1a; font-size: 14px;">
@@ -267,6 +286,7 @@ interface OrderEmailRow {
     subtotal?: number
   }
   gift: GiftData | null
+  donation_amount: number | string | null
 }
 
 // =====================================================================
@@ -721,7 +741,7 @@ export async function sendOrderConfirmationByOrderId(
     .update({ confirmation_email_sent_at: new Date().toISOString() })
     .eq("id", orderId)
     .is("confirmation_email_sent_at", null)
-    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery, gift")
+    .select("id, order_number, tracking_token, eta_minutes, items, total, delivery, gift, donation_amount")
     .maybeSingle<OrderEmailRow>()
 
   if (error) return { ok: false, error: error.message }
@@ -764,6 +784,7 @@ export async function sendOrderConfirmationByOrderId(
     shippingMethod: shipping.method,
     etaMinutes: data.eta_minutes,
     gift: data.gift,
+    donationAmount: Number(data.donation_amount ?? 0),
   })
 
   if (!result.ok) {

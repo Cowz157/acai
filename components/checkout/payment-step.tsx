@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, CreditCard, Loader2, Wallet } from "lucide-react"
 import { formatMoneyBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { DonationSection } from "./donation-section"
 
 /** "cash" mantido no type só pra retrocompat com pedidos antigos no localStorage. UI nova não oferece. */
 export type PaymentMethod = "pix" | "cash" | "card"
@@ -23,6 +24,9 @@ interface PaymentStepProps {
   /** Tentativa atual (1, 2, 3) durante retry. 0 = primeira tentativa. */
   attempt?: number
   errorMessage?: string | null
+  /** Valor adicional doado pelo cliente (em R$). Default 0. */
+  donationAmount: number
+  onDonationChange: (next: number) => void
 }
 
 interface OptionProps {
@@ -114,6 +118,8 @@ export function PaymentStep({
   loading = false,
   attempt = 0,
   errorMessage,
+  donationAmount,
+  onDonationChange,
 }: PaymentStepProps) {
   // Sempre força "pix" — outros métodos não estão mais disponíveis no UI
   const initialMethod: PaymentMethod = defaultValues?.method === "pix" ? "pix" : "pix"
@@ -163,6 +169,8 @@ export function PaymentStep({
           disabled
         />
       </div>
+
+      <DonationSection value={donationAmount} onChange={onDonationChange} />
 
       {errorMessage && (
         <div className="rounded-lg bg-danger-soft px-3 py-2 text-xs font-semibold text-danger">{errorMessage}</div>

@@ -69,6 +69,12 @@ export interface SavedOrder {
   /** Dados de presente — null quando pedido é pro próprio cliente. */
   gift: GiftData | null
 
+  /**
+   * Valor adicional doado pelo cliente — somado ao total do PIX. Default 0.
+   * A casa converte em comida/dinheiro/ajuda direta nas doações que já fazem.
+   */
+  donationAmount: number
+
   // ===================================================================
   // Falha de entrega (cliente reportou não-recebimento)
   // ===================================================================
@@ -166,6 +172,7 @@ export function getLastOrder(): SavedOrder | null {
       redeliveryExpiresAt: parsed.redeliveryExpiresAt ?? null,
       refundProcessedAt: parsed.refundProcessedAt ?? null,
       gift: parsed.gift ?? null,
+      donationAmount: parsed.donationAmount ?? 0,
     }
   } catch {
     return null
@@ -244,6 +251,7 @@ export interface RemoteOrderRow {
   redelivery_expires_at: string | null
   refund_processed_at: string | null
   gift: GiftData | null
+  donation_amount: number | string | null
 }
 
 /**
@@ -279,6 +287,7 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       pix_codigo: order.pix?.codigoPix ?? null,
       pix_expires_at: order.pixExpiresAt ? new Date(order.pixExpiresAt).toISOString() : null,
       gift: order.gift,
+      donation_amount: order.donationAmount,
     }
 
     const res = await fetch("/api/orders/create", {
@@ -366,6 +375,7 @@ export async function fetchOrderHistory(userId: string, limit = 10): Promise<Sav
       redeliveryExpiresAt: row.redelivery_expires_at ? new Date(row.redelivery_expires_at).getTime() : null,
       refundProcessedAt: row.refund_processed_at ? new Date(row.refund_processed_at).getTime() : null,
       gift: row.gift,
+      donationAmount: Number(row.donation_amount ?? 0),
     }
   })
 }
@@ -418,6 +428,7 @@ export async function fetchOrderByToken(token: string): Promise<SavedOrder | nul
       redeliveryExpiresAt: order.redelivery_expires_at ? new Date(order.redelivery_expires_at).getTime() : null,
       refundProcessedAt: order.refund_processed_at ? new Date(order.refund_processed_at).getTime() : null,
       gift: order.gift,
+      donationAmount: Number(order.donation_amount ?? 0),
     }
   } catch (err) {
     console.error("[order-store] fetchOrderByToken exception:", err)
