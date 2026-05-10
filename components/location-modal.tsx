@@ -62,7 +62,7 @@ function SearchableSelect({ value, onChange, options, placeholder }: SearchableS
         )}
       </div>
 
-      <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white">
+      <div className="scrollbar-visible mt-2 max-h-56 overflow-y-auto rounded-xl border border-border bg-white">
         {filtered.length === 0 ? (
           <div className="px-3 py-4 text-center">
             <p className="text-xs italic text-muted-foreground">

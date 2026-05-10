@@ -162,6 +162,31 @@
   scrollbar-width: none;
 }
 
+/* Scrollbar visível e estilizada — pista clara de que o container scrolla.
+   Webkit (Chrome/Safari/Edge) + Firefox via scrollbar-width/color. */
+.scrollbar-visible::-webkit-scrollbar {
+  width: 10px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: rgba(74, 14, 92, 0.06);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: rgba(74, 14, 92, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 14, 92, 0.55);
+  background-clip: padding-box;
+}
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 14, 92, 0.45) rgba(74, 14, 92, 0.08);
+}
+
 /* Evita o zoom automático do iOS quando o usuário toca em inputs.
    Safari só dispara o zoom se font-size do input for < 16px.
    No mobile forçamos 16px (visual desktop continua igual). */
