@@ -97,8 +97,8 @@ const FAQS: FAQ[] = [
       <>
         Conforme a LGPD, você pode solicitar acesso, correção ou exclusão dos seus dados a
         qualquer momento. Mande um email pra{" "}
-        <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
-          contato@anoteii.shop
+        <a href="mailto:contato@pedii.shop" className="font-semibold text-primary underline">
+          contato@pedii.shop
         </a>{" "}
         ou fale no WhatsApp (11) 98765-4321 que respondemos em até 48h úteis.
       </>
@@ -166,8 +166,8 @@ export default function FaqPage() {
           <div className="mt-6 rounded-xl bg-primary-soft px-4 py-4 text-center text-sm text-foreground md:text-base">
             <p>
               Não encontrou sua dúvida?{" "}
-              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
-                contato@anoteii.shop
+              <a href="mailto:contato@pedii.shop" className="font-semibold text-primary underline">
+                contato@pedii.shop
               </a>{" "}
               ou{" "}
               <a

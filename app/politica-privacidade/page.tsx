@@ -83,8 +83,8 @@ export default function PrivacyPolicyPage() {
             <p>
               Você pode solicitar acesso, correção ou exclusão dos seus dados, conforme a Lei Geral de Proteção de
               Dados (LGPD - Lei 13.709/2018), entrando em contato pelo email{" "}
-              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
-                contato@anoteii.shop
+              <a href="mailto:contato@pedii.shop" className="font-semibold text-primary underline">
+                contato@pedii.shop
               </a>{" "}
               ou pelo WhatsApp.
             </p>
@@ -102,8 +102,8 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-bold text-foreground">8. Contato</h2>
             <p>
               Em caso de dúvidas sobre esta política, entre em contato pelo email{" "}
-              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
-                contato@anoteii.shop
+              <a href="mailto:contato@pedii.shop" className="font-semibold text-primary underline">
+                contato@pedii.shop
               </a>{" "}
               ou pelo WhatsApp (11) 98765-4321.
             </p>

@@ -8,9 +8,9 @@ import { getSupabaseAdmin } from "./supabase-admin"
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ""
 
 /** Domínio verificado no Resend pra `from`. Trocar se mudar de domínio. */
-const FROM_EMAIL = "Açaí Tropical <pedidos@anoteii.shop>"
-const REPLY_TO = "contato@anoteii.shop"
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://anoteii.shop"
+const FROM_EMAIL = "Açaí Tropical <pedidos@pedii.shop>"
+const REPLY_TO = "contato@pedii.shop"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://acai.pedii.shop"
 
 let cachedClient: Resend | null = null
 function getResend(): Resend {

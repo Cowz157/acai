@@ -31,7 +31,7 @@ interface CreateOrderBody {
  * de browser (Brave Shields, uBlock agressivo) tratando *.supabase.co como
  * tracker de terceiro.
  *
- * O client agora chama essa rota same-origin (anoteii.shop/api/orders/create)
+ * O client agora chama essa rota same-origin (pedii.shop/api/orders/create)
  * que é first-party — não cai em listas de bloqueio. Insert real roda no
  * servidor com service_role.
  */

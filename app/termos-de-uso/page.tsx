@@ -49,8 +49,8 @@ export default function TermsOfUsePage() {
             </p>
             <p>
               <strong>Contato:</strong> WhatsApp (11) 98765-4321 •{" "}
-              <a href="mailto:contato@anoteii.shop" className="font-semibold text-primary underline">
-                contato@anoteii.shop
+              <a href="mailto:contato@pedii.shop" className="font-semibold text-primary underline">
+                contato@pedii.shop
               </a>
             </p>
           </section>

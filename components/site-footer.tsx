@@ -31,11 +31,11 @@ export function SiteFooter({ withCartBarPadding = false }: SiteFooterProps) {
         </a>
         <span className="opacity-40">•</span>
         <a
-          href="mailto:contato@anoteii.shop"
+          href="mailto:contato@pedii.shop"
           className="inline-flex items-center gap-1.5 underline-offset-2 hover:text-white hover:underline"
         >
           <Mail className="h-3.5 w-3.5" />
-          contato@anoteii.shop
+          contato@pedii.shop
         </a>
       </div>
 
