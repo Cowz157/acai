@@ -20,7 +20,6 @@ export type Product = {
   image: string
   isBestSeller?: boolean
   bestSellerNote?: string
-  combosLeft?: number
   highlight?: string
 }
 
@@ -69,7 +68,6 @@ export const products: Product[] = [
     isBestSeller: true,
     highlight: "Mais que o dobro do Combo 1 por apenas R$ 7 a mais!",
     bestSellerNote: "A maioria dos clientes escolhe esse porque é o melhor custo-benefício!",
-    combosLeft: 8,
   },
   {
     slug: "2-copos-acai-1l",
@@ -122,7 +120,6 @@ export const products: Product[] = [
     isBestSeller: true,
     highlight: "Mais que o dobro do Combo 1 por apenas R$7 a mais!",
     bestSellerNote: "A maioria dos clientes escolhe esse porque é o melhor custo-benefício!",
-    combosLeft: 5,
   },
   {
     slug: "2-copos-acai-1l-zero",

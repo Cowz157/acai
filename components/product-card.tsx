@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Flame, Sparkles } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { findComboEquivalent, type Product } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
@@ -12,6 +12,7 @@ export function ProductCard({ product }: { product: Product }) {
   const isBest = product.isBestSeller
   const isAddon = product.kind === "addon"
   const isAvulso = product.category === "avulso" || product.category === "avulso-zero"
+  const isCombo = product.category === "pague-leve" || product.category === "pague-leve-zero"
   const hasDiscount = product.oldPrice > product.price
 
   // Pra avulsos: calcula a economia se o cliente levar 2 (ativa o combo)
@@ -19,10 +20,7 @@ export function ProductCard({ product }: { product: Product }) {
   const avulsoSavings = avulsoCombo ? Math.max(0, 2 * product.price - avulsoCombo.price) : 0
 
   const hasExtras = Boolean(
-    product.highlight ||
-      product.bestSellerNote ||
-      typeof product.combosLeft === "number" ||
-      avulsoSavings > 0,
+    product.highlight || product.bestSellerNote || isCombo || avulsoSavings > 0,
   )
 
   return (
@@ -98,17 +96,13 @@ export function ProductCard({ product }: { product: Product }) {
             <p className="mt-2 text-xs italic leading-snug text-muted-foreground">{product.bestSellerNote}</p>
           )}
 
-          {typeof product.combosLeft === "number" && (
-            <p className="mt-2 text-xs leading-snug text-foreground">
-              <span className="inline-flex items-center gap-1 align-middle">
-                <Flame className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
-                <span>Apenas</span>
-              </span>{" "}
-              <span className="inline-block whitespace-nowrap rounded-md bg-danger px-1.5 py-0.5 align-middle text-[11px] font-bold text-white">
-                {product.combosLeft} combo(s)
-              </span>{" "}
-              <span>com esse preço especial</span>
-            </p>
+          {isCombo && (
+            <div className="mt-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold text-primary md:text-[11px]">
+                <Sparkles className="h-3 w-3" />
+                2 copos pelo preço de 1
+              </span>
+            </div>
           )}
         </div>
 

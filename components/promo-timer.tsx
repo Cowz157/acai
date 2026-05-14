@@ -4,22 +4,27 @@ import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 
 interface PromoTimerProps {
-  /** Hora local em que a promoção encerra (0-23). Default: 23 (encerra às 23:59:59 do dia atual). */
-  endHour?: number
   showButton?: boolean
   onButtonClick?: () => void
 }
 
-/** Próximo "fim do dia" a partir de um timestamp (sempre futuro). */
-function getNextEndOfDay(currentTime: number, endHour: number): number {
+/**
+ * Fim do mês corrente (último dia às 23:59:59.999). Quando o mês vira, o alvo
+ * passa sozinho pro fim do mês seguinte no próximo tick — sem reload.
+ *
+ * `new Date(ano, mês + 1, 0)` resolve pro último dia do mês `mês` (dia 0 do mês
+ * seguinte = último dia do atual), cobrindo meses de 28/29/30/31 dias.
+ */
+function getEndOfMonth(currentTime: number): number {
   const d = new Date(currentTime)
-  d.setHours(endHour, 59, 59, 999)
-  // Se o "fim de hoje" já passou, mira no mesmo horário do dia seguinte.
-  if (d.getTime() <= currentTime) d.setDate(d.getDate() + 1)
-  return d.getTime()
+  const endOfThisMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)
+  if (endOfThisMonth.getTime() <= currentTime) {
+    return new Date(d.getFullYear(), d.getMonth() + 2, 0, 23, 59, 59, 999).getTime()
+  }
+  return endOfThisMonth.getTime()
 }
 
-export function PromoTimer({ endHour = 23, showButton = true, onButtonClick }: PromoTimerProps) {
+export function PromoTimer({ showButton = true, onButtonClick }: PromoTimerProps) {
   const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
@@ -28,11 +33,10 @@ export function PromoTimer({ endHour = 23, showButton = true, onButtonClick }: P
     return () => clearInterval(interval)
   }, [])
 
-  // Recalcula o alvo a cada tick — quando a meia-noite passa, o "endAt" automaticamente
-  // pula pra o fim do novo dia, sem precisar de reload.
-  const endAt = now === null ? 0 : getNextEndOfDay(now, endHour)
+  const endAt = now === null ? 0 : getEndOfMonth(now)
   const secondsLeft = now === null ? 0 : Math.max(0, Math.floor((endAt - now) / 1000))
-  const hours = Math.floor(secondsLeft / 3600)
+  const days = Math.floor(secondsLeft / 86400)
+  const hours = Math.floor((secondsLeft % 86400) / 3600)
   const minutes = Math.floor((secondsLeft % 3600) / 60)
   const seconds = secondsLeft % 60
 
@@ -48,29 +52,26 @@ export function PromoTimer({ endHour = 23, showButton = true, onButtonClick }: P
     }
   }
 
+  const boxes: { value: number; label: string }[] = [
+    { value: days, label: "Dias" },
+    { value: hours, label: "Horas" },
+    { value: minutes, label: "Min" },
+    { value: seconds, label: "Seg" },
+  ]
+
   return (
     <div className="flex h-full flex-col justify-center rounded-2xl border border-danger bg-danger-soft p-4 md:p-5">
-      <p className="text-center text-sm font-semibold text-danger">A promoção encerra hoje em:</p>
+      <p className="text-center text-sm font-semibold text-danger">A promoção encerra em:</p>
 
-      <div className="mt-3 flex items-center justify-center gap-3">
-        <div className="flex flex-col items-center">
-          <div className="flex h-[70px] w-[70px] items-center justify-center rounded-md bg-danger text-[32px] font-extrabold leading-none text-white shadow-sm tabular-nums">
-            {String(hours).padStart(2, "0")}
+      <div className="mt-3 flex items-center justify-center gap-2 md:gap-3">
+        {boxes.map((box) => (
+          <div key={box.label} className="flex flex-col items-center">
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-md bg-danger text-[26px] font-extrabold leading-none text-white shadow-sm tabular-nums md:h-[70px] md:w-[70px] md:text-[32px]">
+              {String(box.value).padStart(2, "0")}
+            </div>
+            <span className="mt-1 text-[10px] font-medium text-danger">{box.label}</span>
           </div>
-          <span className="mt-1 text-[10px] font-medium text-danger">Horas</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="flex h-[70px] w-[70px] items-center justify-center rounded-md bg-danger text-[32px] font-extrabold leading-none text-white shadow-sm tabular-nums">
-            {String(minutes).padStart(2, "0")}
-          </div>
-          <span className="mt-1 text-[10px] font-medium text-danger">Minutos</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="flex h-[70px] w-[70px] items-center justify-center rounded-md bg-danger text-[32px] font-extrabold leading-none text-white shadow-sm tabular-nums">
-            {String(seconds).padStart(2, "0")}
-          </div>
-          <span className="mt-1 text-[10px] font-medium text-danger">Segundos</span>
-        </div>
+        ))}
       </div>
 
       {showButton && (
