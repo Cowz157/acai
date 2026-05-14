@@ -62,7 +62,7 @@ export function ConfirmationStep({ order: initialOrder, items }: ConfirmationSte
           Pedido Recebido!
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Seu pedido <strong className="text-foreground">#{order.orderId}</strong> foi enviado para a Açaí do Centro
+          Seu pedido <strong className="text-foreground">#{order.orderId}</strong> foi enviado para a Açaí Paraíso
         </p>
       </div>
 

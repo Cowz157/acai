@@ -15,7 +15,7 @@ export function SiteFooter({ withCartBarPadding = false }: SiteFooterProps) {
           : "bg-primary py-6 text-center text-xs text-white/80"
       }
     >
-      <p className="font-semibold">© {new Date().getFullYear()} Açaí Tropical</p>
+      <p className="font-semibold">© {new Date().getFullYear()} Açaí Paraíso</p>
       <p className="mt-0.5">São Paulo - SP • Todos os direitos reservados</p>
 
       {/* Contato */}

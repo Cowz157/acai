@@ -3,8 +3,8 @@ import { ArrowLeft } from "lucide-react"
 import { SiteFooter } from "@/components/site-footer"
 
 export const metadata = {
-  title: "Política de Privacidade — Açaí Tropical",
-  description: "Como tratamos seus dados pessoais ao usar o Açaí Tropical.",
+  title: "Política de Privacidade — Açaí Paraíso",
+  description: "Como tratamos seus dados pessoais ao usar o Açaí Paraíso.",
 }
 
 export default function PrivacyPolicyPage() {
@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">1. Quem somos</h2>
             <p>
-              O <strong>Açaí Tropical</strong> é um delivery de açaí que opera em São Paulo - SP. Esta política
+              O <strong>Açaí Paraíso</strong> é um delivery de açaí que opera em São Paulo - SP. Esta política
               explica como coletamos, usamos e protegemos os dados que você informa ao realizar um pedido.
             </p>
           </section>

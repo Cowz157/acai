@@ -11,7 +11,7 @@ export function SiteHeader() {
       <div className="relative h-[170px] w-full overflow-hidden md:h-[200px]">
         <Image
           src="/images/banner.webp"
-          alt="Banner Açaí Tropical"
+          alt="Banner Açaí Paraíso"
           fill
           priority
           sizes="100vw"
@@ -27,7 +27,7 @@ export function SiteHeader() {
             <div className="relative h-[110px] w-[110px] overflow-hidden rounded-full md:h-[150px] md:w-[150px]">
               <Image
                 src="/images/logo.png"
-                alt="Logo Açaí Tropical"
+                alt="Logo Açaí Paraíso"
                 fill
                 priority
                 sizes="(max-width: 768px) 110px, 150px"
@@ -43,7 +43,7 @@ export function SiteHeader() {
           className="font-display text-[26px] font-bold leading-tight text-primary md:text-[36px]"
           style={{ letterSpacing: "-0.5px" }}
         >
-          Açaí Tropical
+          Açaí Paraíso
         </h1>
 
         {/* Ações: minha conta + info da loja */}

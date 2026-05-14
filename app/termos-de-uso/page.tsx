@@ -3,8 +3,8 @@ import { ArrowLeft } from "lucide-react"
 import { SiteFooter } from "@/components/site-footer"
 
 export const metadata = {
-  title: "Termos de Uso — Açaí Tropical",
-  description: "Termos e condições de uso do delivery Açaí Tropical, incluindo política de cancelamento e reembolso.",
+  title: "Termos de Uso — Açaí Paraíso",
+  description: "Termos e condições de uso do delivery Açaí Paraíso, incluindo política de cancelamento e reembolso.",
 }
 
 export default function TermsOfUsePage() {
@@ -35,7 +35,7 @@ export default function TermsOfUsePage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">1. Aceitação dos termos</h2>
             <p>
-              Ao realizar um pedido no <strong>Açaí Tropical</strong>, você declara ter lido, compreendido e
+              Ao realizar um pedido no <strong>Açaí Paraíso</strong>, você declara ter lido, compreendido e
               aceito integralmente estes Termos de Uso. O pedido só é confirmado após o aceite explícito
               durante o checkout.
             </p>
@@ -44,7 +44,7 @@ export default function TermsOfUsePage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">2. Sobre nós</h2>
             <p>
-              O Açaí Tropical é um delivery de açaí localizado em São Paulo - SP. Vendemos copos
+              O Açaí Paraíso é um delivery de açaí localizado em São Paulo - SP. Vendemos copos
               individuais e combos da promoção "Pague 1, Leve 2", com complementos personalizáveis.
             </p>
             <p>
@@ -126,7 +126,7 @@ export default function TermsOfUsePage() {
           <section className="space-y-2">
             <h2 className="text-lg font-bold text-foreground">8. Propriedade intelectual</h2>
             <p>
-              Todo o conteúdo do site (textos, imagens, logos, código) pertence ao Açaí Tropical e é
+              Todo o conteúdo do site (textos, imagens, logos, código) pertence ao Açaí Paraíso e é
               protegido por direitos autorais. É vedada qualquer reprodução sem autorização expressa.
             </p>
           </section>

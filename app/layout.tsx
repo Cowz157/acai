@@ -20,7 +20,7 @@ const nunito = Nunito({
 })
 
 export const metadata: Metadata = {
-  title: "Açaí Tropical - Delivery de Açaí",
+  title: "Açaí Paraíso - Delivery de Açaí",
   description: "Todo dia é dia de açaí! Pague 1, Leve 2. Entrega rápida em Angra dos Reis.",
   generator: "v0.app",
 }

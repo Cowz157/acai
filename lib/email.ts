@@ -8,7 +8,7 @@ import { getSupabaseAdmin } from "./supabase-admin"
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ""
 
 /** Domínio verificado no Resend pra `from`. Trocar se mudar de domínio. */
-const FROM_EMAIL = "Açaí Tropical <pedidos@pedii.shop>"
+const FROM_EMAIL = "Açaí Paraíso <pedidos@pedii.shop>"
 const REPLY_TO = "contato@pedii.shop"
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://acai.pedii.shop"
 
@@ -82,7 +82,7 @@ function baseLayout(content: string, preheader = ""): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Açaí Tropical</title>
+  <title>Açaí Paraíso</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.5;">
   <span style="display: none; max-height: 0; overflow: hidden;">${escapeHtml(preheader)}</span>
@@ -92,7 +92,7 @@ function baseLayout(content: string, preheader = ""): string {
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden;">
           <tr>
             <td style="background-color: #4a0e5c; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800;">Açaí Tropical</h1>
+              <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800;">Açaí Paraíso</h1>
             </td>
           </tr>
           <tr>
@@ -102,7 +102,7 @@ function baseLayout(content: string, preheader = ""): string {
           </tr>
           <tr>
             <td style="background-color: #f5f5f5; padding: 16px 24px; text-align: center; color: #6b7280; font-size: 12px;">
-              Açaí Tropical • São Paulo - SP<br>
+              Açaí Paraíso • São Paulo - SP<br>
               <a href="${SITE_URL}" style="color: #4a0e5c; text-decoration: none;">${SITE_URL.replace("https://", "")}</a>
             </td>
           </tr>
@@ -236,7 +236,7 @@ Acompanhe em: ${trackUrl}
 
 Total: ${formatMoney(ctx.total)}
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return { subject, html: baseLayout(content, `Pedido #${ctx.orderNumber} confirmado`), text }
 }
@@ -355,7 +355,7 @@ Ou acesse: ${trackUrl}
 
 Total: ${formatMoney(ctx.total)}
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return { subject, html: baseLayout(content, `Seu PIX ainda está válido — pedido #${ctx.orderNumber}`), text }
 }
@@ -410,7 +410,7 @@ ${trackUrl}
 
 Total: ${formatMoney(ctx.total)}
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return { subject, html: baseLayout(content, `Seu PIX expirou — pedido #${ctx.orderNumber}`), text }
 }
@@ -536,7 +536,7 @@ ${ctx.codigoPix}
 
 Ou acesse: ${trackUrl}
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return { subject, html: baseLayout(content, `Nova entrega gerada — pedido #${ctx.orderNumber}`), text }
 }
@@ -586,7 +586,7 @@ Prazo: até 5 dias úteis
 
 O valor será devolvido via PIX na chave usada no pagamento original.
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return { subject, html: baseLayout(content, `Reembolso solicitado — pedido #${ctx.orderNumber}`), text }
 }
@@ -850,7 +850,7 @@ Não chegou? Geramos uma nova entrega imediata — chega em 8-25 min, com taxa d
 
 Acessar: ${trackUrl}
 
-Açaí Tropical — ${SITE_URL}`
+Açaí Paraíso — ${SITE_URL}`
 
   return {
     subject,

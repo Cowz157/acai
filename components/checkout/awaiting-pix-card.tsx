@@ -142,7 +142,7 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
           email: order.delivery.email,
           cpf: generateCPF(),
           telefone: order.delivery.phone ? unmaskDigits(order.delivery.phone) : "",
-          produto: `Açaí Tropical — ${produtoLabel}`,
+          produto: `Açaí Paraíso — ${produtoLabel}`,
           external_id: newExternalId,
         },
         {},

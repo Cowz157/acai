@@ -96,7 +96,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         nome: customerName,
         email: customerEmail,
         cpf: generateCPF(),
-        produto: `Açaí Tropical — Re-entrega Pedido #${order.order_number}`,
+        produto: `Açaí Paraíso — Re-entrega Pedido #${order.order_number}`,
         external_id: externalId,
       }),
     })

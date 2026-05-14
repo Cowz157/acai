@@ -3,9 +3,9 @@ import { ArrowLeft, HelpCircle } from "lucide-react"
 import { SiteFooter } from "@/components/site-footer"
 
 export const metadata = {
-  title: "Dúvidas frequentes — Açaí Tropical",
+  title: "Dúvidas frequentes — Açaí Paraíso",
   description:
-    "Respostas pras perguntas mais comuns sobre pedidos, entrega, pagamento e cancelamento no Açaí Tropical.",
+    "Respostas pras perguntas mais comuns sobre pedidos, entrega, pagamento e cancelamento no Açaí Paraíso.",
 }
 
 interface FAQ {

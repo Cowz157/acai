@@ -206,7 +206,7 @@ export default function CheckoutPage() {
           email: identification.email,
           cpf: generateCPF(),
           telefone: identification.phone ? unmaskDigits(identification.phone) : "",
-          produto: `Açaí Tropical — ${produtoLabel}`,
+          produto: `Açaí Paraíso — ${produtoLabel}`,
           external_id: orderInternalId,
         },
         {},

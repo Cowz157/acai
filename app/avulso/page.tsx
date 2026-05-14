@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { avulsoCategories, products } from "@/lib/data"
 
 export const metadata = {
-  title: "Açaí Avulso (1 Copo) — Açaí Tropical",
+  title: "Açaí Avulso (1 Copo) — Açaí Paraíso",
   description:
     "Prefere apenas 1 copo? Açaí avulso nos tamanhos 300ml, 500ml, 700ml e 1L. Versão tradicional ou Zero açúcar.",
 }
