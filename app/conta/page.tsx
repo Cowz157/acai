@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, Loader2, LogOut, MapPin, User } from "lucide-r
 import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { maskPhone, unmaskDigits } from "@/lib/format"
 import { getLastOrder, type SavedOrder } from "@/lib/order-store"
+import { MyReview } from "@/components/my-review"
 import { OrderHistory } from "@/components/order-history"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
@@ -146,6 +147,8 @@ export default function ContaPage() {
             )}
 
             <OrderHistory userId={user.id} />
+
+            <MyReview userId={user.id} />
 
             <button
               type="button"
