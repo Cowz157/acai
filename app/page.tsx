@@ -3,7 +3,6 @@ import { Heart, Sparkles } from "lucide-react"
 import { ActiveOrderBanner } from "@/components/active-order-banner"
 import { CategoryNav } from "@/components/category-nav"
 import { DeliveryBanner } from "@/components/delivery-banner"
-import { LiveOrderToast } from "@/components/live-order-toast"
 import { LocationModal } from "@/components/location-modal"
 import { ProductCard } from "@/components/product-card"
 import { PromoTimer } from "@/components/promo-timer"
@@ -112,8 +111,6 @@ export default function HomePage() {
           <PromoTimer />
         </div>
       </div>
-
-      <LiveOrderToast />
 
       <SiteFooter withCartBarPadding />
     </main>
