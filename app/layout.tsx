@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   title: "Açaí Paraíso - Delivery de Açaí",
   description: "Todo dia é dia de açaí! Pague 1, Leve 2. Entrega rápida em Angra dos Reis.",
   generator: "v0.app",
+  icons: {
+    icon: "/images/logo-sem-fundo.png",
+    apple: "/images/logo-sem-fundo.png",
+  },
 }
 
 export default function RootLayout({
