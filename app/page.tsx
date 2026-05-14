@@ -6,6 +6,7 @@ import { DeliveryBanner } from "@/components/delivery-banner"
 import { LocationModal } from "@/components/location-modal"
 import { ProductCard } from "@/components/product-card"
 import { PromoTimer } from "@/components/promo-timer"
+import { ReviewCta } from "@/components/review-cta"
 import { ReviewsWithPhotos } from "@/components/review-with-photo"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
@@ -104,6 +105,11 @@ export default function HomePage() {
         {/* Avaliações com fotos */}
         <div className="mt-12">
           <ReviewsWithPhotos />
+        </div>
+
+        {/* CTA pra deixar avaliação — gancho de criação de conta */}
+        <div className="mt-6">
+          <ReviewCta />
         </div>
 
         {/* Timer final antes do bloco de estatísticas */}
