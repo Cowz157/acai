@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Sparkles } from "lucide-react"
+import { Check, Sparkles } from "lucide-react"
 import { findComboEquivalent, type Product } from "@/lib/data"
 import { cn } from "@/lib/utils"
 
@@ -27,7 +27,7 @@ export function ProductCard({ product }: { product: Product }) {
     <Link
       href={`/produto/${product.slug}`}
       className={cn(
-        "group relative block rounded-xl bg-white p-3 transition hover:shadow-md lg:p-4 lg:duration-300 lg:hover:-translate-y-1 lg:hover:shadow-xl",
+        "group relative block rounded-xl bg-white p-3 transition hover:shadow-md lg:flex lg:h-full lg:flex-col lg:p-4 lg:duration-300 lg:hover:-translate-y-1 lg:hover:shadow-xl",
         isBest ? "animate-best-seller-pulse border-[3px] border-success" : "border border-border",
       )}
     >
@@ -41,12 +41,12 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div
         className={cn(
-          "flex gap-3 lg:flex-col lg:gap-4",
+          "flex gap-3 lg:flex-1 lg:flex-col lg:gap-4",
           isBest && "pt-7",
           hasExtras ? "items-start lg:items-stretch" : "items-center lg:items-stretch",
         )}
       >
-        <div className="min-w-0 flex-1 lg:order-2">
+        <div className="min-w-0 flex-1 lg:order-2 lg:flex lg:flex-col">
           <h3 className="text-sm font-bold leading-snug text-foreground md:text-base lg:text-lg">{product.name}</h3>
           {!isAddon && product.freebies > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">{product.freebies} Complementos Grátis</p>
@@ -63,23 +63,21 @@ export function ProductCard({ product }: { product: Product }) {
               <div className="mt-1.5 text-xs text-muted-foreground">de</div>
               <div className="text-sm text-muted-foreground line-through">R$ {formatPrice(product.oldPrice)}</div>
               <div className="text-xs text-muted-foreground">por</div>
-              <div
-                className={cn(
-                  "inline-block text-base font-extrabold md:text-lg lg:text-2xl",
-                  isBest ? "rounded-md bg-success px-2 py-0.5 text-white" : "text-success",
-                )}
-              >
+              <div className="inline-block text-base font-extrabold text-success md:text-lg lg:text-2xl">
                 R$ {formatPrice(product.price)}
               </div>
             </>
           ) : (
-            <div
-              className={cn(
-                "mt-2 inline-block text-base font-extrabold md:text-lg lg:text-2xl",
-                isBest ? "rounded-md bg-success px-2 py-0.5 text-white" : "text-success",
-              )}
-            >
+            <div className="mt-2 inline-block text-base font-extrabold text-success md:text-lg lg:text-2xl">
               R$ {formatPrice(product.price)}
+            </div>
+          )}
+
+          {hasDiscount && (
+            <div className="mt-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success md:text-[11px]">
+                Economize R$ {formatPrice(product.oldPrice - product.price)}
+              </span>
             </div>
           )}
 
@@ -103,6 +101,23 @@ export function ProductCard({ product }: { product: Product }) {
                 2 copos pelo preço de 1
               </span>
             </div>
+          )}
+
+          {(isCombo || isAvulso) && !isBest && (
+            <ul className="mt-3 hidden space-y-1.5 border-t border-border pt-3 lg:mt-auto lg:block">
+              <li className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Check className="h-3 w-3 shrink-0 text-success" />
+                Entrega Express disponível
+              </li>
+              <li className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Check className="h-3 w-3 shrink-0 text-success" />
+                PIX aprovado na hora
+              </li>
+              <li className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Check className="h-3 w-3 shrink-0 text-success" />
+                {isCombo ? "9 complementos à sua escolha" : "Complementos à sua escolha"}
+              </li>
+            </ul>
           )}
         </div>
 

@@ -1,11 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Heart } from "lucide-react"
+import { ArrowRight, Flame, Heart } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface PromoTimerProps {
   showButton?: boolean
   onButtonClick?: () => void
+  /** "default" (vertical, compacto) | "banner" (horizontal full-width em md+) */
+  variant?: "default" | "banner"
 }
 
 /**
@@ -24,7 +27,7 @@ function getEndOfMonth(currentTime: number): number {
   return endOfThisMonth.getTime()
 }
 
-export function PromoTimer({ showButton = true, onButtonClick }: PromoTimerProps) {
+export function PromoTimer({ showButton = true, onButtonClick, variant = "default" }: PromoTimerProps) {
   const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
@@ -58,6 +61,73 @@ export function PromoTimer({ showButton = true, onButtonClick }: PromoTimerProps
     { value: minutes, label: "Min" },
     { value: seconds, label: "Seg" },
   ]
+
+  const isBanner = variant === "banner"
+
+  if (isBanner) {
+    return (
+      <>
+        {/* Mobile: estilo antigo compacto vertical com botão branco */}
+        <div className="flex flex-col justify-center rounded-2xl border border-danger bg-danger-soft p-4 md:hidden">
+          <p className="text-center text-sm font-semibold text-danger">A promoção encerra em:</p>
+          <div className="mt-3 flex items-center justify-center gap-2">
+            {boxes.map((box) => (
+              <div key={box.label} className="flex flex-col items-center">
+                <div className="flex h-[60px] w-[60px] items-center justify-center rounded-md bg-danger text-[26px] font-extrabold leading-none text-white shadow-sm tabular-nums">
+                  {String(box.value).padStart(2, "0")}
+                </div>
+                <span className="mt-1 text-[10px] font-medium text-danger">{box.label}</span>
+              </div>
+            ))}
+          </div>
+          {showButton && (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={handleClick}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2 text-sm font-semibold text-primary transition hover:bg-muted"
+              >
+                Clique Para Ver Açaís em Promoção <Heart className="h-4 w-4 fill-primary text-primary" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: novo banner horizontal com Flame e CTA filled */}
+        <div className="hidden md:flex md:flex-row md:items-center md:justify-between md:gap-6 md:overflow-hidden md:rounded-2xl md:border md:border-danger md:bg-gradient-to-r md:from-danger-soft md:via-danger-soft md:to-white md:p-5">
+          <div className="flex flex-row items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-danger text-white shadow-sm">
+              <Flame className="h-6 w-6" />
+            </div>
+            <div className="text-left">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-danger">Oferta por tempo limitado</p>
+              <p className="text-sm font-medium text-foreground">A promoção encerra em:</p>
+            </div>
+            <div className="ml-1 flex items-center gap-2">
+              {boxes.map((box) => (
+                <div key={box.label} className="flex flex-col items-center">
+                  <div className="flex h-[58px] w-[50px] items-center justify-center rounded-lg bg-danger text-[26px] font-extrabold leading-none text-white shadow-md tabular-nums">
+                    {String(box.value).padStart(2, "0")}
+                  </div>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide text-danger">{box.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {showButton && (
+            <button
+              type="button"
+              onClick={handleClick}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-base font-bold text-white shadow-sm transition hover:bg-primary/90 hover:shadow-md"
+            >
+              Ver Açaís em Promoção <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="flex h-full flex-col justify-center rounded-2xl border border-danger bg-danger-soft p-4 md:p-5">

@@ -11,6 +11,7 @@ import { ReviewsWithPhotos } from "@/components/review-with-photo"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { categories, products } from "@/lib/data"
+import { cn } from "@/lib/utils"
 
 export default function HomePage() {
   const productsByCategory = categories.map((cat) => ({
@@ -43,8 +44,6 @@ export default function HomePage() {
           {productsByCategory.map((cat) => {
             const isPagueLeve = cat.id === "pague-leve" || cat.id === "pague-leve-zero"
             const isAvulso = cat.id === "avulso" || cat.id === "avulso-zero"
-            const firstThree = isPagueLeve ? cat.items.slice(0, 3) : cat.items
-            const lastItem = isPagueLeve ? cat.items[3] : null
             // Banner de upsell aparece só ANTES da primeira seção avulso ("1 Copo")
             const showAvulsoUpsell = cat.id === "avulso"
 
@@ -82,18 +81,20 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  <div className="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {firstThree.map((product) => (
+                  <div
+                    className={cn(
+                      "mt-4 grid grid-cols-1 gap-4 md:grid-cols-2",
+                      isPagueLeve ? "lg:grid-cols-4" : "lg:grid-cols-3",
+                    )}
+                  >
+                    {cat.items.map((product) => (
                       <ProductCard key={product.slug} product={product} />
                     ))}
                   </div>
 
-                  {isPagueLeve && lastItem && (
-                    <div className="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      <div className="lg:col-span-2">
-                        <PromoTimer />
-                      </div>
-                      <ProductCard product={lastItem} />
+                  {isPagueLeve && (
+                    <div className="mt-4">
+                      <PromoTimer variant="banner" />
                     </div>
                   )}
                 </section>
@@ -113,8 +114,8 @@ export default function HomePage() {
         </div>
 
         {/* Timer final antes do bloco de estatísticas */}
-        <div className="mt-8 max-w-md">
-          <PromoTimer />
+        <div className="mt-8">
+          <PromoTimer variant="banner" />
         </div>
       </div>
 
