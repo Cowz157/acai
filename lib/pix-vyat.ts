@@ -146,11 +146,21 @@ export async function createVyatPix(
 
   if (!pixRes.ok) {
     let errPayload: VyatErrorResponse | null = null
+    let rawText: string | null = null
     try {
-      errPayload = (await pixRes.json()) as VyatErrorResponse
+      rawText = await pixRes.text()
+      errPayload = JSON.parse(rawText) as VyatErrorResponse
     } catch {
       /* sem corpo legível */
     }
+    // ===== LOGGING TEMPORÁRIO — diagnóstico GATEWAY_ERROR =====
+    console.error("[createVyatPix] proxy retornou erro:", {
+      status: pixRes.status,
+      statusText: pixRes.statusText,
+      parsed: errPayload,
+      raw: errPayload ? undefined : rawText?.slice(0, 500),
+    })
+    // ==========================================================
     const message = errPayload?.error ?? "Erro ao gerar cobrança PIX."
     const code = errPayload?.error_code ?? "UNKNOWN"
     const retryable = errPayload?.retryable ?? pixRes.status >= 500

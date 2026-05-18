@@ -45,6 +45,23 @@ export async function POST(request: NextRequest) {
   const idempotencyKey = request.headers.get("idempotency-key")
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey
 
+  // ===== LOGGING TEMPORÁRIO — diagnóstico do GATEWAY_ERROR =====
+  // Sanitiza payload pra log (esconde CPF/telefone, mascara email).
+  const sentSanitized = {
+    valor: body.valor,
+    email: typeof body.email === "string" ? body.email.slice(0, 3) + "***@" + (body.email.split("@")[1] ?? "") : null,
+    produto: body.produto,
+    external_id: body.external_id,
+    expires_in_seconds: body.expires_in_seconds,
+    has_cpf: typeof body.cpf === "string" && body.cpf.length > 0,
+    has_telefone: typeof body.telefone === "string" && body.telefone.length > 0,
+    has_idempotency_key: Boolean(idempotencyKey),
+    key_prefix: VYAT_KEY.slice(0, 8),
+    vyat_base: VYAT_BASE,
+  }
+  console.log("[proxy/vyat/pix/criar] enviando:", sentSanitized)
+  // ============================================================
+
   try {
     const upstream = await fetch(`${VYAT_BASE}/v1/pix/criar`, {
       method: "POST",
@@ -56,12 +73,42 @@ export async function POST(request: NextRequest) {
     })
 
     const text = await upstream.text()
+
+    // ===== LOGGING TEMPORÁRIO — captura resposta completa do Vyat =====
+    let parsedBody: unknown
+    try {
+      parsedBody = JSON.parse(text)
+    } catch {
+      parsedBody = text.slice(0, 500) // se não é JSON, mostra primeiros 500 chars
+    }
+    console.log("[proxy/vyat/pix/criar] resposta Vyat:", {
+      status: upstream.status,
+      statusText: upstream.statusText,
+      body: parsedBody,
+      headers: {
+        "content-type": upstream.headers.get("content-type"),
+        "retry-after": upstream.headers.get("retry-after"),
+        "x-request-id": upstream.headers.get("x-request-id"),
+        "cf-ray": upstream.headers.get("cf-ray"),
+        "cf-cache-status": upstream.headers.get("cf-cache-status"),
+        server: upstream.headers.get("server"),
+      },
+    })
+    // ==================================================================
+
     return new NextResponse(text, {
       status: upstream.status,
       headers: { "Content-Type": upstream.headers.get("content-type") ?? "application/json" },
     })
   } catch (err) {
-    console.error("[proxy/vyat/pix/criar] erro upstream:", err)
+    // ===== LOGGING TEMPORÁRIO — captura exception do fetch =====
+    console.error("[proxy/vyat/pix/criar] FETCH FALHOU (network/timeout/DNS):", {
+      name: err instanceof Error ? err.name : "unknown",
+      message: err instanceof Error ? err.message : String(err),
+      cause: err instanceof Error ? (err as Error & { cause?: unknown }).cause : undefined,
+      stack: err instanceof Error ? err.stack?.split("\n").slice(0, 5).join("\n") : undefined,
+    })
+    // ===========================================================
     return NextResponse.json(
       { error: "Falha de comunicação com o gateway", error_code: "GATEWAY_ERROR", retryable: true },
       { status: 502 },
