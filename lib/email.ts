@@ -747,7 +747,10 @@ export async function sendOrderConfirmationByOrderId(
     .select("id, order_number, tracking_token, eta_minutes, items, total, delivery, gift, donation_amount")
     .maybeSingle<OrderEmailRow>()
 
-  if (error) return { ok: false, error: error.message }
+  if (error) {
+    console.error("[email/sendByOrderId] supabase update falhou:", { orderId, error: error.message })
+    return { ok: false, error: error.message }
+  }
 
   if (!data) {
     // Update afetou 0 rows — ou pedido não existe, ou já foi reivindicado
@@ -757,9 +760,19 @@ export async function sendOrderConfirmationByOrderId(
       .select("id")
       .eq("id", orderId)
       .maybeSingle()
-    if (!exists) return { ok: false, error: "Pedido não encontrado" }
+    if (!exists) {
+      console.warn("[email/sendByOrderId] pedido não encontrado:", { orderId })
+      return { ok: false, error: "Pedido não encontrado" }
+    }
+    console.log("[email/sendByOrderId] skip — já enviado:", { orderId })
     return { ok: true, skipped: "already_sent" }
   }
+
+  console.log("[email/sendByOrderId] claim ok, preparando envio:", {
+    orderId,
+    customer_email: data.delivery?.email?.slice(0, 3) + "***",
+    has_resend_key: Boolean(RESEND_API_KEY),
+  })
 
   const delivery = data.delivery
   const shipping = delivery.shipping ?? { method: "standard" as const, price: 0 }
