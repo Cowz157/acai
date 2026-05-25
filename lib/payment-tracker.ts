@@ -74,37 +74,12 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
 
         if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
           emailDispatchedRef.current = order.id
-          // Push do evento `purchase` pro dataLayer — trigger da tag Purchase
-          // no GTM (Custom Event). Dispara só quando approved é detectado, não
-          // em PIX gerado mas não pago (que também fica em /acompanhar).
-          // transaction_id permite dedup no Google Ads se um caminho server-side
-          // (Vyat-direct futuro) também enviar a mesma conversão.
-          if (typeof window !== "undefined") {
-            window.dataLayer = window.dataLayer || []
-            window.dataLayer.push({
-              event: "purchase",
-              // Campos raiz mantidos pra retrocompat com as tags Google Ads
-              // existentes no GTM (DLV - value, DLV - currency, DLV - transaction_id).
-              value: order.total,
-              currency: "BRL",
-              transaction_id: order.id,
-              // ecommerce nested (GA4 schema) — consumido pelo dataLayer listener
-              // do pixel.js da Vyat (v3.2.0+), que mapeia purchase → Meta Purchase
-              // e usa transaction_id como eventID pra dedupar com a CAPI server-side
-              // (que usa external_id = order.id como event_id).
-              ecommerce: {
-                transaction_id: order.id,
-                value: order.total,
-                currency: "BRL",
-                items: order.items.map((it) => ({
-                  item_id: it.productId,
-                  item_name: it.productName,
-                  price: it.basePrice,
-                  quantity: it.quantity,
-                })),
-              },
-            })
-          }
+          // dataLayer purchase dispatch foi extraído pro useEffect abaixo —
+          // cobre os cenários onde o polling NÃO detecta a mudança (pedido
+          // chega já approved via cron server, refresh com state restored,
+          // user abre /acompanhar com pedido antigo). Flag em localStorage
+          // garante 1× por order.id mesmo cross-page/cross-session.
+
           // Marca pedido como pago no Supabase — sem isso, status fica 'pending'
           // indefinidamente e o cron de abandonment manda nudge pra quem já pagou.
           void fetch(`/api/orders/${encodeURIComponent(order.id)}/mark-paid`, {
@@ -134,4 +109,70 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
       clearInterval(interval)
     }
   }, [order?.id, order?.gatewayTransactionId, order?.paymentStatus, order?.payment.method, order])
+
+  // Effect separado pra dispatch do evento `purchase` no dataLayer. Independente
+  // do polling — dispara em qualquer caminho onde o pedido fica approved:
+  //   - Polling client detecta mudança pending → approved (caso normal)
+  //   - Pedido chega já approved porque o cron server confirmou antes
+  //   - User refresha página entre paymentStatus mudar e dataLayer.push acontecer
+  //   - User abre /acompanhar com pedido antigo já approved (sessão posterior)
+  // Flag `purchaseEventFired_<order.id>` em localStorage garante 1× por order
+  // mesmo cross-page (/checkout → /acompanhar) e cross-session.
+  useEffect(() => {
+    if (!order) return
+    if (order.paymentStatus !== "approved") return
+    if (typeof window === "undefined") return
+
+    const flagKey = `purchaseEventFired_${order.id}`
+    let alreadyFired = false
+    try {
+      alreadyFired = Boolean(window.localStorage.getItem(flagKey))
+    } catch {
+      // localStorage indisponível (privacy mode etc) — segue sem flag.
+      // No pior caso pode duplicar em refresh, mas o pixel.js da Vyat e o
+      // próprio Meta dedupam pelo eventID = transaction_id.
+    }
+    if (alreadyFired) return
+
+    window.dataLayer = window.dataLayer || []
+    window.dataLayer.push({
+      event: "purchase",
+      // Campos raiz mantidos pra retrocompat com as tags Google Ads existentes
+      // no GTM (DLV - value, DLV - currency, DLV - transaction_id).
+      value: order.total,
+      currency: "BRL",
+      transaction_id: order.id,
+      // ecommerce nested (GA4 schema) — consumido pelo dataLayer listener
+      // do pixel.js da Vyat (v3.2.0+), que mapeia purchase → Meta Purchase
+      // usando ecommerce.transaction_id como eventID pra dedupar com a CAPI
+      // server-side (que usa external_id = order.id como event_id).
+      ecommerce: {
+        transaction_id: order.id,
+        value: order.total,
+        currency: "BRL",
+        items: order.items.map((it) => ({
+          item_id: it.productId,
+          item_name: it.productName,
+          price: it.basePrice,
+          quantity: it.quantity,
+        })),
+      },
+    })
+
+    // Log temporário pra confirmar visualmente quando dispara enquanto o
+    // tracking estabiliza. Remover quando Events Manager Meta confirmar
+    // Purchase "Deduplicated" em algumas compras seguidas sem regressão.
+    console.log("[payment-tracker] purchase event dispatched no dataLayer:", {
+      order_id: order.id,
+      value: order.total,
+      currency: "BRL",
+      items_count: order.items.length,
+    })
+
+    try {
+      window.localStorage.setItem(flagKey, String(Date.now()))
+    } catch {
+      // sem persistência — best-effort
+    }
+  }, [order])
 }
