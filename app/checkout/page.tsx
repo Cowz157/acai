@@ -119,14 +119,22 @@ export default function CheckoutPage() {
     if (identification) {
       saveAddress({ ...identification, ...data })
     }
-    // Vyat tpTrack — InitiateCheckout no Meta Pixel quando o usuário entra no step
-    // de pagamento. No-op se a tag Vyat não estiver ativa no GTM.
-    if (typeof window !== "undefined" && window.tpTrack) {
-      window.tpTrack("InitiateCheckout", {
-        value: total,
-        currency: "BRL",
-        num_items: items.reduce((sum, it) => sum + it.quantity, 0),
-        content_ids: items.map((it) => it.productId),
+    // dataLayer push (GA4 schema). Pixel.js da Vyat (v3.2.0+) mapeia
+    // `begin_checkout` GA4 → InitiateCheckout Meta automaticamente.
+    if (typeof window !== "undefined") {
+      window.dataLayer = window.dataLayer || []
+      window.dataLayer.push({
+        event: "begin_checkout",
+        ecommerce: {
+          value: total,
+          currency: "BRL",
+          items: items.map((it) => ({
+            item_id: it.productId,
+            item_name: it.productName,
+            price: it.basePrice,
+            quantity: it.quantity,
+          })),
+        },
       })
     }
     setStep(3)

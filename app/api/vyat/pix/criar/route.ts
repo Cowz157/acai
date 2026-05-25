@@ -45,6 +45,18 @@ export async function POST(request: NextRequest) {
   const idempotencyKey = request.headers.get("idempotency-key")
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey
 
+  // Injeta cookies _fbc/_fbp do browser do comprador no payload do PIX.
+  // Sem isso, a CAPI server-side da Vyat dispara Purchase sem as match keys
+  // principais (fbc/fbp do Facebook), degradando match rate em 30-50% segundo
+  // métricas da própria Meta. Cookies vêm same-origin (acai.pedii.shop), então
+  // request.cookies.get() funciona automaticamente. customer_ip e user_agent
+  // a própria Vyat já auto-injeta a partir dos headers do request — não precisa
+  // duplicar.
+  const fbcCookie = request.cookies.get("_fbc")?.value
+  const fbpCookie = request.cookies.get("_fbp")?.value
+  if (fbcCookie && !body.fbc) body.fbc = fbcCookie
+  if (fbpCookie && !body.fbp) body.fbp = fbpCookie
+
   // ===== LOGGING TEMPORÁRIO — diagnóstico do GATEWAY_ERROR =====
   // Sanitiza payload pra log (esconde CPF/telefone, mascara email).
   const sentSanitized = {
@@ -56,6 +68,8 @@ export async function POST(request: NextRequest) {
     has_cpf: typeof body.cpf === "string" && body.cpf.length > 0,
     has_telefone: typeof body.telefone === "string" && body.telefone.length > 0,
     has_idempotency_key: Boolean(idempotencyKey),
+    has_fbc: Boolean(body.fbc),
+    has_fbp: Boolean(body.fbp),
     key_prefix: VYAT_KEY.slice(0, 8),
     vyat_base: VYAT_BASE,
   }

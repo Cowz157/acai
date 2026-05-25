@@ -83,9 +83,26 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
             window.dataLayer = window.dataLayer || []
             window.dataLayer.push({
               event: "purchase",
+              // Campos raiz mantidos pra retrocompat com as tags Google Ads
+              // existentes no GTM (DLV - value, DLV - currency, DLV - transaction_id).
               value: order.total,
               currency: "BRL",
               transaction_id: order.id,
+              // ecommerce nested (GA4 schema) — consumido pelo dataLayer listener
+              // do pixel.js da Vyat (v3.2.0+), que mapeia purchase → Meta Purchase
+              // e usa transaction_id como eventID pra dedupar com a CAPI server-side
+              // (que usa external_id = order.id como event_id).
+              ecommerce: {
+                transaction_id: order.id,
+                value: order.total,
+                currency: "BRL",
+                items: order.items.map((it) => ({
+                  item_id: it.productId,
+                  item_name: it.productName,
+                  price: it.basePrice,
+                  quantity: it.quantity,
+                })),
+              },
             })
           }
           // Marca pedido como pago no Supabase — sem isso, status fica 'pending'

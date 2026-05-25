@@ -62,15 +62,26 @@ export const useCart = create<CartState>()(
           items: [...state.items, newItem],
           pulse: state.pulse + 1,
         }))
-        // Vyat tpTrack — dispara AddToCart no Meta Pixel via API pública do pixel.js
-        // (cdn.vyat.app/scripts/pixel.js). Fila interna cobre chamadas antes do fbq
-        // carregar; se a tag Vyat - Meta Pixel estiver pausada no GTM, é no-op.
-        if (typeof window !== "undefined" && window.tpTrack) {
-          window.tpTrack("AddToCart", {
-            value: newItem.subtotal,
-            currency: "BRL",
-            content_ids: [newItem.productId],
-            content_name: newItem.productName,
+        // dataLayer push (GA4 schema). Pixel.js da Vyat (v3.2.0+) tem listener
+        // que detecta `event: 'add_to_cart'` no formato GA4 e mapeia pra
+        // AddToCart no Meta Pixel automaticamente. Mesma estrutura serve pra
+        // GA4 + Meta + qualquer tag GTM custom.
+        if (typeof window !== "undefined") {
+          window.dataLayer = window.dataLayer || []
+          window.dataLayer.push({
+            event: "add_to_cart",
+            ecommerce: {
+              value: newItem.subtotal,
+              currency: "BRL",
+              items: [
+                {
+                  item_id: newItem.productId,
+                  item_name: newItem.productName,
+                  price: newItem.basePrice,
+                  quantity: newItem.quantity,
+                },
+              ],
+            },
           })
         }
       },
