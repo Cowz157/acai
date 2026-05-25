@@ -87,36 +87,6 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
               currency: "BRL",
               transaction_id: order.id,
             })
-
-            // Meta CAPI dispatch — server-side pra suprir gap do Pixel client
-            // (iOS ATT, adblockers, Brave Shields). O `event_id` é o mesmo
-            // `transaction_id` do dataLayer.push pra dedup com o Meta Pixel.
-            const fbpMatch = document.cookie.match(/_fbp=([^;]+)/)
-            const fbcMatch = document.cookie.match(/_fbc=([^;]+)/)
-            void fetch("/api/meta/capi", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                event_name: "Purchase",
-                event_id: order.id,
-                event_time: Math.floor(Date.now() / 1000),
-                event_source_url: window.location.href,
-                user_data: {
-                  email: order.delivery.email,
-                  phone: order.delivery.phone,
-                  fullName: order.delivery.fullName,
-                  fbp: fbpMatch?.[1],
-                  fbc: fbcMatch?.[1],
-                },
-                custom_data: {
-                  value: order.total,
-                  currency: "BRL",
-                  content_ids: order.items.map((it) => it.productId),
-                },
-              }),
-            }).catch((err) => {
-              console.error("[payment-tracker] Meta CAPI dispatch falhou:", err)
-            })
           }
           // Marca pedido como pago no Supabase — sem isso, status fica 'pending'
           // indefinidamente e o cron de abandonment manda nudge pra quem já pagou.
