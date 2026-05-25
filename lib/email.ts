@@ -748,7 +748,7 @@ export async function sendOrderConfirmationByOrderId(
     .maybeSingle<OrderEmailRow>()
 
   if (error) {
-    console.error("[email/sendByOrderId] supabase update falhou:", { orderId, error: error.message })
+    console.error(`[email/sendByOrderId] supabase update falhou: orderId=${orderId} error=${error.message}`)
     return { ok: false, error: error.message }
   }
 
@@ -761,18 +761,17 @@ export async function sendOrderConfirmationByOrderId(
       .eq("id", orderId)
       .maybeSingle()
     if (!exists) {
-      console.warn("[email/sendByOrderId] pedido não encontrado:", { orderId })
+      console.warn(`[email/sendByOrderId] pedido não encontrado: orderId=${orderId}`)
       return { ok: false, error: "Pedido não encontrado" }
     }
-    console.log("[email/sendByOrderId] skip — já enviado:", { orderId })
+    console.log(`[email/sendByOrderId] skip — já enviado: orderId=${orderId}`)
     return { ok: true, skipped: "already_sent" }
   }
 
-  console.log("[email/sendByOrderId] claim ok, preparando envio:", {
-    orderId,
-    customer_email: data.delivery?.email?.slice(0, 3) + "***",
-    has_resend_key: Boolean(RESEND_API_KEY),
-  })
+  const maskedEmail = data.delivery?.email ? data.delivery.email.slice(0, 3) + "***" : "null"
+  console.log(
+    `[email/sendByOrderId] claim ok, preparando envio: orderId=${orderId} customer_email=${maskedEmail} has_resend_key=${Boolean(RESEND_API_KEY)}`,
+  )
 
   const delivery = data.delivery
   const shipping = delivery.shipping ?? { method: "standard" as const, price: 0 }

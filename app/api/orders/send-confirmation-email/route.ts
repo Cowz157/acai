@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "orderId obrigatório" }, { status: 400 })
   }
 
-  console.log("[send-confirmation-email] iniciando envio:", { orderId })
+  console.log(`[send-confirmation-email] iniciando envio: orderId=${orderId}`)
   const result = await sendOrderConfirmationByOrderId(orderId)
-  console.log("[send-confirmation-email] resultado:", { orderId, result })
+  console.log(`[send-confirmation-email] resultado: orderId=${orderId} ${JSON.stringify(result)}`)
 
   if (!result.ok) {
     return NextResponse.json(result, { status: result.error === "Pedido não encontrado" ? 404 : 500 })
