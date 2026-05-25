@@ -267,7 +267,7 @@ export async function sendOrderConfirmationEmail(ctx: OrderEmailContext): Promis
       text,
     })
     if (error) {
-      console.error("[email] erro do Resend:", error)
+      console.error(`[email] erro do Resend: ${JSON.stringify(error)}`)
       return { ok: false, error: error.message }
     }
     return { ok: true }
@@ -468,7 +468,7 @@ export async function sendPixNudgeEmail(
       text,
     })
     if (error) {
-      console.error("[email] erro Resend (nudge):", error)
+      console.error(`[email] erro Resend (nudge): ${JSON.stringify(error)}`)
       return { ok: false, error: error.message }
     }
     return { ok: true }
@@ -636,7 +636,7 @@ export async function sendRedeliveryEmail(
       text,
     })
     if (error) {
-      console.error("[email] erro Resend (redelivery):", error)
+      console.error(`[email] erro Resend (redelivery): ${JSON.stringify(error)}`)
       return { ok: false, error: error.message }
     }
     return { ok: true }
@@ -672,7 +672,7 @@ export async function sendRefundRequestedEmail(
       text,
     })
     if (error) {
-      console.error("[email] erro Resend (refund):", error)
+      console.error(`[email] erro Resend (refund): ${JSON.stringify(error)}`)
       return { ok: false, error: error.message }
     }
     return { ok: true }
@@ -710,7 +710,7 @@ export async function sendPixExpiredEmail(
       text,
     })
     if (error) {
-      console.error("[email] erro Resend (expired):", error)
+      console.error(`[email] erro Resend (expired): ${JSON.stringify(error)}`)
       return { ok: false, error: error.message }
     }
     return { ok: true }
