@@ -74,27 +74,12 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
 
         if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
           emailDispatchedRef.current = order.id
-          // dataLayer purchase dispatch foi extraído pro useEffect abaixo —
-          // cobre os cenários onde o polling NÃO detecta a mudança (pedido
-          // chega já approved via cron server, refresh com state restored,
-          // user abre /acompanhar com pedido antigo). Flag em localStorage
-          // garante 1× por order.id mesmo cross-page/cross-session.
-
-          // Marca pedido como pago no Supabase — sem isso, status fica 'pending'
-          // indefinidamente e o cron de abandonment manda nudge pra quem já pagou.
-          void fetch(`/api/orders/${encodeURIComponent(order.id)}/mark-paid`, {
-            method: "POST",
-          }).catch((err) => {
-            console.error("[payment-tracker] falha ao marcar pedido como pago:", err)
-          })
-          // Email transacional de confirmação
-          void fetch("/api/orders/send-confirmation-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: order.id }),
-          }).catch((err) => {
-            console.error("[payment-tracker] falha ao enviar email de confirmação:", err)
-          })
+          // dataLayer purchase + mark-paid + send-email foram extraídos pro
+          // useEffect abaixo. Esse block continua sendo o caminho "rápido"
+          // quando o polling DETECTA a mudança pending → approved em tempo
+          // real (UX: status muda na tela na hora). O useEffect cobre os
+          // cenários onde o polling NÃO detecta (pedido chega já approved
+          // via cron, refresh, sessão posterior).
         }
       } catch (err) {
         console.error("[payment-tracker] erro polling status PIX:", err)
@@ -173,6 +158,56 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
       window.localStorage.setItem(flagKey, String(Date.now()))
     } catch {
       // sem persistência — best-effort
+    }
+  }, [order])
+
+  // Effect separado pra side-effects server-side quando approved é detectado:
+  // mark-paid (UPDATE supabase) + send-confirmation-email (Resend). Mesmo padrão
+  // do dataLayer purchase acima — independente do tick do polling, com flag em
+  // localStorage pra dedup cross-page/cross-session. Cobre:
+  //   - User refreshou /acompanhar com pedido já approved (status remoto bate
+  //     com local, polling sai early no `if (newStatus === order.paymentStatus)`)
+  //   - Cron server-side `check-pending-pix` está down/desabilitado (cron-job.org
+  //     às vezes desabilita auto após N falhas consecutivas)
+  // Os endpoints server são idempotentes (mark-paid é UPDATE no, send-email
+  // tem claim atômico via confirmation_email_sent_at), então no pior caso o
+  // dispatch duplica e o server resolve.
+  useEffect(() => {
+    if (!order) return
+    if (order.paymentStatus !== "approved") return
+    if (typeof window === "undefined") return
+
+    const flagKey = `serverSideDispatched_${order.id}`
+    let alreadyFired = false
+    try {
+      alreadyFired = Boolean(window.localStorage.getItem(flagKey))
+    } catch {
+      // segue sem flag
+    }
+    if (alreadyFired) return
+
+    void fetch(`/api/orders/${encodeURIComponent(order.id)}/mark-paid`, {
+      method: "POST",
+    }).catch((err) => {
+      console.error("[payment-tracker] falha ao marcar pedido como pago:", err)
+    })
+
+    void fetch("/api/orders/send-confirmation-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: order.id }),
+    }).catch((err) => {
+      console.error("[payment-tracker] falha ao enviar email de confirmação:", err)
+    })
+
+    console.log("[payment-tracker] server-side dispatch enviado (mark-paid + send-email):", {
+      order_id: order.id,
+    })
+
+    try {
+      window.localStorage.setItem(flagKey, String(Date.now()))
+    } catch {
+      // best-effort
     }
   }, [order])
 }
