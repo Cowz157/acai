@@ -29,6 +29,16 @@ export const metadata: Metadata = {
   },
 }
 
+// GTM só carrega se a env var existir (Railway prod) E o hostname estiver na allowlist.
+// Defesa em camadas: a env var bloqueia previews Vercel / dev local; o hostname check
+// bloqueia caso a env var vaze pra um build não-prod (acessos diretos à URL Railway,
+// alias DNS futuro, etc).
+// ATENÇÃO: pra adicionar novo domínio aqui, precisa também adicioná-lo no GTM Admin →
+// Container Settings → Monitored Domains (Domínios monitorados), senão o alerta de
+// "Outros domínios detectados" volta.
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
+const GTM_HOSTS = ["acai.pedii.shop", "www.acai.pedii.shop"]
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,26 +47,34 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${poppins.variable} ${nunito.variable} bg-background`}>
       <head>
-        {/* Google Tag Manager — gerencia todos os pixels (Google Ads, GA4, etc.)
-            via container GTM-WVTNHC4M. */}
-        <Script id="gtm-init" strategy="afterInteractive">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        {/* Google Tag Manager — gerencia todos os pixels (Google Ads, GA4, etc.).
+            Só dispara em produção (env var setada) E em hostname da allowlist. */}
+        {GTM_ID && (
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`if (${JSON.stringify(GTM_HOSTS)}.indexOf(window.location.hostname) !== -1) {
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-WVTNHC4M');`}
-        </Script>
+})(window,document,'script','dataLayer','${GTM_ID}');
+}`}
+          </Script>
+        )}
       </head>
       <body className="font-sans antialiased">
-        {/* GTM noscript fallback — recomendado pela Google logo após <body> */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-WVTNHC4M"
-            height="0"
-            width="0"
-            style={{ display: "none", visibility: "hidden" }}
-          />
-        </noscript>
+        {/* GTM noscript fallback. Mesma proteção via env var — não tem como fazer
+            hostname check em <noscript> puro, mas o impacto é zero (Next.js depende
+            de JS). Sem GTM_ID, o iframe não renderiza nem em preview/dev. */}
+        {GTM_ID && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <UtmsCapture />
         {children}
         <CartUI />

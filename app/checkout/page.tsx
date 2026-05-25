@@ -119,6 +119,10 @@ export default function CheckoutPage() {
     if (identification) {
       saveAddress({ ...identification, ...data })
     }
+    // TODO: pushar evento `begin_checkout` no dataLayer aqui — esse é o momento em que
+    // o usuário entra no step de pagamento. Hoje a tag "Iniciar Checkout" no GTM dispara
+    // via URL match `/checkout`, que é menos preciso. Quando implementar, mandar:
+    //   { event: 'begin_checkout', value: total, currency: 'BRL', items: [...mapped from cart] }
     setStep(3)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
