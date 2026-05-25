@@ -7,8 +7,11 @@ import { getSupabaseAdmin } from "./supabase-admin"
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ""
 
-/** Domínio verificado no Resend pra `from`. Trocar se mudar de domínio. */
-const FROM_EMAIL = "Açaí Paraíso <pedidos@pedii.shop>"
+/** Domínio verificado no Resend pra `from`. Trocar se mudar de domínio.
+ * Hoje o único domínio verificado na conta Resend é `acai.pedii.shop` —
+ * o `pedii.shop` raiz NÃO está verificado, então o FROM precisa usar o
+ * subdomínio. REPLY_TO pode ser de qualquer domínio (Resend não valida). */
+const FROM_EMAIL = "Açaí Paraíso <pedidos@acai.pedii.shop>"
 const REPLY_TO = "contato@pedii.shop"
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://acai.pedii.shop"
 
