@@ -45,6 +45,7 @@ export default function CheckoutPage() {
   const [paymentAttempt, setPaymentAttempt] = useState(0)
 
   const finalizedItems = useRef<typeof items>([])
+  const beginCheckoutFiredRef = useRef(false)
 
   useEffect(() => {
     setHydrated(true)
@@ -99,6 +100,34 @@ export default function CheckoutPage() {
     }
   }, [hydrated, items.length, subtotal, step, router])
 
+  // dataLayer push `begin_checkout` (GA4 schema) — dispara 1× quando o usuário
+  // chega no /checkout COM items válidos. Pixel.js da Vyat (v3.2.0+) detecta
+  // e mapeia pra Meta InitiateCheckout automaticamente. Disparar aqui no load
+  // (não no submit do endereço) segue o padrão GA4 onde begin_checkout marca
+  // a ENTRADA no funil de checkout, e add_shipping_info / add_payment_info
+  // marcam transições subsequentes.
+  useEffect(() => {
+    if (beginCheckoutFiredRef.current) return
+    if (!hydrated) return
+    if (items.length === 0 || subtotal < MIN_ORDER_VALUE) return
+    if (typeof window === "undefined") return
+    window.dataLayer = window.dataLayer || []
+    window.dataLayer.push({
+      event: "begin_checkout",
+      ecommerce: {
+        value: total,
+        currency: "BRL",
+        items: items.map((it) => ({
+          item_id: it.productId,
+          item_name: it.productName,
+          price: it.basePrice,
+          quantity: it.quantity,
+        })),
+      },
+    })
+    beginCheckoutFiredRef.current = true
+  }, [hydrated, items, subtotal, total])
+
   if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
@@ -118,24 +147,6 @@ export default function CheckoutPage() {
     setGift(giftData)
     if (identification) {
       saveAddress({ ...identification, ...data })
-    }
-    // dataLayer push (GA4 schema). Pixel.js da Vyat (v3.2.0+) mapeia
-    // `begin_checkout` GA4 → InitiateCheckout Meta automaticamente.
-    if (typeof window !== "undefined") {
-      window.dataLayer = window.dataLayer || []
-      window.dataLayer.push({
-        event: "begin_checkout",
-        ecommerce: {
-          value: total,
-          currency: "BRL",
-          items: items.map((it) => ({
-            item_id: it.productId,
-            item_name: it.productName,
-            price: it.basePrice,
-            quantity: it.quantity,
-          })),
-        },
-      })
     }
     setStep(3)
     window.scrollTo({ top: 0, behavior: "smooth" })
