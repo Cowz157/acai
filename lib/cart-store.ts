@@ -62,6 +62,17 @@ export const useCart = create<CartState>()(
           items: [...state.items, newItem],
           pulse: state.pulse + 1,
         }))
+        // Vyat tpTrack — dispara AddToCart no Meta Pixel via API pública do pixel.js
+        // (cdn.vyat.app/scripts/pixel.js). Fila interna cobre chamadas antes do fbq
+        // carregar; se a tag Vyat - Meta Pixel estiver pausada no GTM, é no-op.
+        if (typeof window !== "undefined" && window.tpTrack) {
+          window.tpTrack("AddToCart", {
+            value: newItem.subtotal,
+            currency: "BRL",
+            content_ids: [newItem.productId],
+            content_name: newItem.productName,
+          })
+        }
       },
       removeItem: (id) =>
         set((state) => ({

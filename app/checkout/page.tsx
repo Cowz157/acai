@@ -119,10 +119,16 @@ export default function CheckoutPage() {
     if (identification) {
       saveAddress({ ...identification, ...data })
     }
-    // TODO: pushar evento `begin_checkout` no dataLayer aqui — esse é o momento em que
-    // o usuário entra no step de pagamento. Hoje a tag "Iniciar Checkout" no GTM dispara
-    // via URL match `/checkout`, que é menos preciso. Quando implementar, mandar:
-    //   { event: 'begin_checkout', value: total, currency: 'BRL', items: [...mapped from cart] }
+    // Vyat tpTrack — InitiateCheckout no Meta Pixel quando o usuário entra no step
+    // de pagamento. No-op se a tag Vyat não estiver ativa no GTM.
+    if (typeof window !== "undefined" && window.tpTrack) {
+      window.tpTrack("InitiateCheckout", {
+        value: total,
+        currency: "BRL",
+        num_items: items.reduce((sum, it) => sum + it.quantity, 0),
+        content_ids: items.map((it) => it.productId),
+      })
+    }
     setStep(3)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
