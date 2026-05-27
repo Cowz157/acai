@@ -57,8 +57,11 @@ export async function POST(request: NextRequest) {
   if (fbcCookie && !body.fbc) body.fbc = fbcCookie
   if (fbpCookie && !body.fbp) body.fbp = fbpCookie
 
-  // ===== LOGGING TEMPORÁRIO — diagnóstico do GATEWAY_ERROR =====
+  // ===== LOGGING TEMPORÁRIO — diagnóstico do GATEWAY_ERROR + atribuição =====
   // Sanitiza payload pra log (esconde CPF/telefone, mascara email).
+  // Flags has_* nos campos de atribuição permitem ver no Railway se cada um
+  // dos campos novos (gap #1 do diagnóstico Vyat) chega populado em vendas
+  // reais, sem precisar inspecionar o body inteiro.
   const sentSanitized = {
     valor: body.valor,
     email: typeof body.email === "string" ? body.email.slice(0, 3) + "***@" + (body.email.split("@")[1] ?? "") : null,
@@ -70,6 +73,12 @@ export async function POST(request: NextRequest) {
     has_idempotency_key: Boolean(idempotencyKey),
     has_fbc: Boolean(body.fbc),
     has_fbp: Boolean(body.fbp),
+    has_campaign_id: Boolean(body.campaign_id),
+    has_adset_id: Boolean(body.adset_id),
+    has_ad_id: Boolean(body.ad_id),
+    has_ad_account_id: Boolean(body.ad_account_id),
+    has_fbclid: Boolean(body.fbclid),
+    has_ttclid: Boolean(body.ttclid),
     key_prefix: VYAT_KEY.slice(0, 8),
     vyat_base: VYAT_BASE,
   }
