@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
-import { citiesByState, states } from "@/lib/data"
+import { ArrowLeft, Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
+import { citiesByState, stateCodeByName, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
 import { fetchCitiesByState } from "@/lib/ibge-cities"
@@ -327,7 +327,23 @@ export function LocationModal() {
 
         {step === 2 && (
           <>
+            {/* Chip mostrando o estado escolhido + botão "Trocar" pra voltar
+                pro step 1 se o user errou. Mantém o `state` selecionado quando
+                voltar (não limpa) — user vê o que tinha escolhido. */}
             <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-muted/70"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>
+                  Estado: <strong className="text-primary">{state}</strong>
+                </span>
+                <span className="text-[10px] font-bold uppercase text-primary">Trocar</span>
+              </button>
+            </div>
+            <div className="mt-4 flex justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft">
                 <MapPin className="h-7 w-7 text-primary" />
               </div>
@@ -351,7 +367,21 @@ export function LocationModal() {
               <button
                 type="button"
                 disabled={!city.trim()}
-                onClick={() => setStep(3)}
+                onClick={() => {
+                  // Persiste a escolha manual no mesmo storage que o IP usa, pra
+                  // que componentes downstream (StoreLocationLine no header,
+                  // DeliveryBanner) reflitam imediatamente "Atendendo {cidade
+                  // escolhida} - {UF}" sem depender da detecção automática.
+                  const code = stateCodeByName[state] ?? null
+                  saveDetectedLocation({
+                    city,
+                    state,
+                    stateCode: code,
+                    country: "BR",
+                  })
+                  setStateCode(code)
+                  setStep(3)
+                }}
                 className="rounded-md bg-success px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Procurar loja mais próxima!
