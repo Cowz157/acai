@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
     has_idempotency_key: Boolean(idempotencyKey),
     has_fbc: Boolean(body.fbc),
     has_fbp: Boolean(body.fbp),
+    cpf_fallback: body.cpf_fallback === true,
     has_campaign_id: Boolean(body.campaign_id),
     has_adset_id: Boolean(body.adset_id),
     has_ad_id: Boolean(body.ad_id),

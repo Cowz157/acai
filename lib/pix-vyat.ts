@@ -128,6 +128,15 @@ export async function createVyatPix(
         nome: params.nome,
         email: params.email,
         cpf: params.cpf,
+        // Flag pra Vyat saber que esse CPF é auto-gerado (generateCPF()),
+        // não foi digitado pelo user. O site açaí não pergunta CPF no
+        // checkout — schema só tem fullName/email/phone. Vyat usa essa
+        // flag em extractMatchKeysFromTx (commit 4368592) pra NÃO hashear
+        // o CPF como external_id no Meta Advanced Matching CAPI. Sem isso,
+        // Meta tentaria cruzar CPF fake com perfis reais → 0% match →
+        // degradação do EMQ. Hardcoded true porque hoje SEMPRE é fake;
+        // se o checkout passar a pedir CPF real no futuro, virar prop.
+        cpf_fallback: true,
         telefone: params.telefone ?? "",
         produto: params.produto ?? "",
         external_id: params.external_id,
