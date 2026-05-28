@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { fetchVyatPixStatus } from "./pix-vyat"
+import { updateMetaAdvancedMatching } from "./meta-pixel"
 import { type PaymentStatus, type SavedOrder } from "./order-store"
 
 const POLL_INTERVAL_MS = 5000
@@ -118,6 +119,17 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
       // próprio Meta dedupam pelo eventID = transaction_id.
     }
     if (alreadyFired) return
+
+    // Advanced Matching reforçado pro Purchase — passa external_id +
+    // email/phone/nome do pedido. Garante match keys mesmo em sessões
+    // onde o user pulou direto pro /acompanhar sem passar pelo step de
+    // identification do checkout (ex: link salvo, retorno após restart).
+    updateMetaAdvancedMatching({
+      email: order.delivery.email,
+      phone: order.delivery.phone,
+      fullName: order.delivery.fullName,
+      external_id: order.id,
+    })
 
     window.dataLayer = window.dataLayer || []
     window.dataLayer.push({

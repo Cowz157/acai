@@ -11,6 +11,7 @@ import type { AddressData, DeliveryData, GiftData, IdentificationData } from "@/
 import { generateCPF } from "@/lib/cpf"
 import { getShippingOption, type ShippingMethod } from "@/lib/data"
 import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from "@/lib/order-store"
+import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { unmaskDigits } from "@/lib/format"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
@@ -138,6 +139,14 @@ export default function CheckoutPage() {
 
   const handleIdentificationSubmit = (data: IdentificationData) => {
     setIdentification(data)
+    // Advanced Matching do Meta Pixel — re-init com email/phone/nome agora
+    // que o user preencheu o form. Match keys herdadas por TODOS eventos
+    // subsequentes (begin_checkout, purchase). Melhora EMQ de ~6 pra 8+.
+    updateMetaAdvancedMatching({
+      email: data.email,
+      phone: data.phone,
+      fullName: data.fullName,
+    })
     setStep(2)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
