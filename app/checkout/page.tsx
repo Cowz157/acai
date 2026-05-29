@@ -15,7 +15,12 @@ import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { unmaskDigits } from "@/lib/format"
 import { getStoredUtms } from "@/lib/utms"
-import { calculateCartCouponDiscount, clearStoredCoupon, getStoredCoupon } from "@/lib/coupon-url"
+import {
+  calculateCartCouponDiscount,
+  clearStoredCoupon,
+  getStoredCoupon,
+  getStoredCouponInfo,
+} from "@/lib/coupon-url"
 import type { AppliedCoupon } from "@/components/checkout/coupon-field"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
 import { AddressStep } from "@/components/checkout/address-step"
@@ -79,7 +84,6 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items])
   const shippingPrice = getShippingOption(shippingMethod).price
-  const couponDiscount = appliedCoupon?.discountBrl ?? 0
   // Cupom vale pra 1 produto (o de maior valor). O server calcula em cima
   // de couponBaseAmount, NÃO do subtotal inteiro. Usado pelo auto-apply
   // useEffect e passado pro CouponField pra validação manual.
@@ -87,17 +91,35 @@ export default function CheckoutPage() {
     if (items.length === 0) return 0
     return Math.max(...items.map((it) => it.basePrice))
   }, [items])
+  // Preview de desconto exibido ANTES do user submeter identification
+  // (validação real só roda no step 3 quando email tá disponível). Cobre o
+  // cenário: user veio com ?cupom=ACAI20 → adiciona produto → vai pro
+  // checkout — desconto já aparece desde o step 1, não some até o step 3.
+  // Quando o auto-apply real rolar e setar `appliedCoupon`, esse preview
+  // é substituído pelo valor server-side (que valida max_uses_per_email
+  // etc — pode ser que zere se cupom já foi usado pelo email).
+  const previewCouponInfo = !appliedCoupon ? getStoredCouponInfo() : null
+  const { discountBrl: previewCouponDiscount } = useMemo(
+    () => calculateCartCouponDiscount(items, previewCouponInfo),
+    // previewCouponInfo é lido do storage a cada render, mas só muda quando
+    // o evento dispatcha. Aqui depende de items + appliedCoupon — se
+    // appliedCoupon ficar setado, previewCouponInfo vira null e preview zera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, appliedCoupon],
+  )
+  const effectiveCouponDiscount = appliedCoupon?.discountBrl ?? previewCouponDiscount
+  const effectiveCouponCode = appliedCoupon?.code ?? previewCouponInfo?.code ?? null
   // Desconto sai do subtotal (não do frete nem da doação). Math.max evita
   // total negativo caso cupom > subtotal por algum motivo.
-  const total = Math.max(0, subtotal - couponDiscount) + shippingPrice + donationAmount
+  const total = Math.max(0, subtotal - effectiveCouponDiscount) + shippingPrice + donationAmount
 
   // Se o subtotal mudar (user voltou e mexeu no carrinho) e o desconto agora
   // violaria as regras do cupom (ex: min_subtotal), remove o cupom — UX honesta
   // em vez de mostrar desconto que não vai ser aceito no save.
   useEffect(() => {
     if (!appliedCoupon) return
-    if (couponDiscount > subtotal) setAppliedCoupon(null)
-  }, [subtotal, appliedCoupon, couponDiscount])
+    if (appliedCoupon.discountBrl > subtotal) setAppliedCoupon(null)
+  }, [subtotal, appliedCoupon])
 
   // Auto-aplicar cupom da URL (?cupom=ACAI20 ou ?coupon=ACAI20). Usado pelos
   // emails de lead-recovery (3º toque) e qualquer campanha que linke direto
@@ -417,8 +439,8 @@ export default function CheckoutPage() {
             shippingPrice={shippingPrice}
             total={total}
             donationAmount={donationAmount}
-            couponDiscount={couponDiscount}
-            couponCode={appliedCoupon?.code ?? null}
+            couponDiscount={effectiveCouponDiscount}
+            couponCode={effectiveCouponCode}
             defaultOpen={false}
           />
         )}

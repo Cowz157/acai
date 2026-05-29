@@ -143,6 +143,11 @@ export function ProductCustomizer({ product }: { product: Product }) {
   }, [product, quantity, isAvulso])
   const total = pricing.total
   const comboApplied = pricing.comboPairs > 0
+  // Preço do botão Adicionar com cupom aplicado em 1 unidade (regra
+  // "cupom vale pra 1 produto"). Math no checkout re-confirma considerando
+  // contexto completo do carrinho, mas pra o botão é uma estimativa boa.
+  const couponUnitDiscount = coupon ? calculateCouponDiscount(coupon, product.price) : 0
+  const totalWithCoupon = Math.max(0, total - couponUnitDiscount)
 
   const coberturasItems = coberturas.map((c) => ({ name: c }))
   const frutasItems = frutas.map((c) => ({ name: c }))
@@ -450,9 +455,28 @@ export function ProductCustomizer({ product }: { product: Product }) {
                 <ShoppingBag className="h-4 w-4" />
                 <span>Adicionar</span>
               </span>
-              <span className="text-base font-extrabold tabular-nums md:text-lg">R$ {formatMoney(total)}</span>
+              {showCouponPrice ? (
+                <span className="flex flex-col items-end leading-tight">
+                  <span className="text-[10px] font-medium text-white/70 line-through tabular-nums md:text-xs">
+                    R$ {formatMoney(total)}
+                  </span>
+                  <span className="text-base font-extrabold tabular-nums md:text-lg">
+                    R$ {formatMoney(totalWithCoupon)}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-base font-extrabold tabular-nums md:text-lg">R$ {formatMoney(total)}</span>
+              )}
             </button>
           </div>
+          {showCouponPrice && (
+            <div className="flex items-center justify-end gap-1.5 text-[11px] font-bold text-primary">
+              <Ticket className="h-3 w-3" />
+              <span>
+                Com cupom <span className="font-extrabold">{coupon.code}</span>
+              </span>
+            </div>
+          )}
           {cartItemCount > 0 && (
             <button
               type="button"
