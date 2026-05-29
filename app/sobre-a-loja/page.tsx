@@ -87,15 +87,11 @@ export default function SobreALojaPage() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-lg font-bold text-foreground">6. Promoções e cupons</h2>
+            <h2 className="text-lg font-bold text-foreground">6. Promoções</h2>
             <ul className="list-disc space-y-1 pl-5">
               <li>
                 <strong>Pague 1, Leve 2</strong> — combo automático na seção de combos ou ao levar 2
                 copos avulsos.
-              </li>
-              <li>
-                Cupom <strong>ACAI20</strong> — 20% de desconto no produto de maior valor do
-                carrinho. Vale 1x por email.
               </li>
               <li>Entrega grátis hoje na sua região.</li>
             </ul>
