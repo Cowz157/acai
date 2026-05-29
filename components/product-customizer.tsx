@@ -13,7 +13,7 @@ import {
   turbines,
   type Product,
 } from "@/lib/data"
-import { useCart } from "@/lib/cart-store"
+import { useCart, type CartItemOptions } from "@/lib/cart-store"
 import { calculateCouponDiscount, useActiveCoupon } from "@/lib/coupon-url"
 import { formatMoney } from "@/lib/format"
 import { OptionStepper } from "./option-stepper"
@@ -103,22 +103,45 @@ function selectionToOptions(selection: Selection) {
     .map(([name, quantity]) => ({ name, quantity }))
 }
 
+function buildSelectedOptions(
+  coberturasSel: Selection,
+  frutasSel: Selection,
+  complementosSel: Selection,
+  turbinesSel: Selection,
+): CartItemOptions {
+  return {
+    coberturas: selectionToOptions(coberturasSel),
+    frutas: selectionToOptions(frutasSel),
+    complementos: selectionToOptions(complementosSel),
+    turbine: selectionToOptions(turbinesSel),
+  }
+}
+
 export function ProductCustomizer({ product }: { product: Product }) {
+  // Cup 1 (sempre presente)
   const [coberturasSel, setCoberturasSel] = useState<Selection>({})
   const [frutasSel, setFrutasSel] = useState<Selection>({})
   const [complementosSel, setComplementosSel] = useState<Selection>({})
   const [turbinesSel, setTurbinesSel] = useState<Selection>({})
+
+  // Cup 2 (usado só quando differentCups=true)
+  const [coberturas2Sel, setCoberturas2Sel] = useState<Selection>({})
+  const [frutas2Sel, setFrutas2Sel] = useState<Selection>({})
+  const [complementos2Sel, setComplementos2Sel] = useState<Selection>({})
+  const [turbines2Sel, setTurbines2Sel] = useState<Selection>({})
+
+  const [differentCups, setDifferentCups] = useState(false)
+
   const [detail, setDetail] = useState("")
   const [quantity, setQuantity] = useState(1)
-  /** Índice da seção aberta (0..3). null = todas fechadas. */
+  /** Índice da seção aberta (0..3). null = todas fechadas. Só ativo no modo "iguais". */
   const [openSection, setOpenSection] = useState<number | null>(0)
 
   const isAddon = product.kind === "addon"
   const isAvulso = product.category === "avulso" || product.category === "avulso-zero"
+  const isCombo = product.category === "pague-leve" || product.category === "pague-leve-zero"
 
   // Cupom ativo (user veio via ?cupom= ou aplicou em sessão anterior).
-  // Mostra preço estimado com cupom abaixo do preço atual — visual coerente
-  // com o ProductCard da home, reforça que o desconto se aplica também aqui.
   const coupon = useActiveCoupon()
   const couponDiscount = coupon ? calculateCouponDiscount(coupon, product.price) : 0
   const priceWithCoupon = product.price - couponDiscount
@@ -143,17 +166,29 @@ export function ProductCustomizer({ product }: { product: Product }) {
   }, [product, quantity, isAvulso])
   const total = pricing.total
   const comboApplied = pricing.comboPairs > 0
-  // Preço do botão Adicionar com cupom aplicado em 1 unidade (regra
-  // "cupom vale pra 1 produto"). Math no checkout re-confirma considerando
-  // contexto completo do carrinho, mas pra o botão é uma estimativa boa.
   const couponUnitDiscount = coupon ? calculateCouponDiscount(coupon, product.price) : 0
   const totalWithCoupon = Math.max(0, total - couponUnitDiscount)
+
+  // Toggle "personalizar cada copo" só faz sentido quando o cliente vai levar
+  // EXATAMENTE 2 copos:
+  //  - combo direto (Pague 1 Leve 2) — sempre tem 2 copos
+  //  - avulso com quantity === 2 (combo aplicado automaticamente, sem remainder)
+  // Pra qty>2 com remainder ou qty=1, esconde o toggle pra não confundir.
+  const canDifferentiate = !isAddon && (isCombo || (isAvulso && quantity === 2))
+
+  // Se cliente ativou "diferentes" e depois mudou quantity quebrando a regra,
+  // volta automático pra "iguais" — evita estado inconsistente no addToCart.
+  useEffect(() => {
+    if (!canDifferentiate && differentCups) {
+      setDifferentCups(false)
+    }
+  }, [canDifferentiate, differentCups])
 
   const coberturasItems = coberturas.map((c) => ({ name: c }))
   const frutasItems = frutas.map((c) => ({ name: c }))
   const complementosItems = complementos.map((c) => ({ name: c }))
 
-  // Totais por seção (pra disparar auto-advance quando atingem o max)
+  // Totais por seção do Cup 1 (pra disparar auto-advance no modo "iguais")
   const coberturasTotal = useMemo(
     () => Object.values(coberturasSel).reduce((s, v) => s + v, 0),
     [coberturasSel],
@@ -171,30 +206,29 @@ export function ProductCustomizer({ product }: { product: Product }) {
     [turbinesSel],
   )
 
-  // Refs pras seções (pra scrollIntoView ao avançar)
+  // Refs pras seções do Cup 1 (auto-advance só no modo "iguais")
   const sectionRefs = useRef<Array<HTMLDivElement | null>>([null, null, null, null])
   const sectionMaxes = [2, 2, 4, 1]
   const sectionTotals = [coberturasTotal, frutasTotal, complementosTotal, turbinesTotal]
   /** Marcado quando uma seção foi aberta via auto-advance (não por clique manual). */
   const autoAdvancedRef = useRef(false)
 
-  // Detecta quando a seção atual atinge o max → marca pra auto-advance
+  // Auto-advance só no modo "iguais" (modo "diferentes" tem 2 grupos abertos,
+  // navegação manual é mais intuitiva).
   useEffect(() => {
+    if (differentCups) return
     if (openSection === null) return
     if (sectionTotals[openSection] < sectionMaxes[openSection]) return
     const next = openSection + 1 < sectionMaxes.length ? openSection + 1 : null
     autoAdvancedRef.current = next !== null
     setOpenSection(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coberturasTotal, frutasTotal, complementosTotal, turbinesTotal])
+  }, [coberturasTotal, frutasTotal, complementosTotal, turbinesTotal, differentCups])
 
-  // Faz o scroll APÓS o React re-renderizar com o novo openSection
-  // (assim a posição calculada já considera a seção anterior fechada e a próxima aberta)
   useEffect(() => {
     if (!autoAdvancedRef.current) return
     autoAdvancedRef.current = false
     if (openSection === null) return
-    // Double rAF garante que o layout do navegador foi finalizado antes do scroll
     const id1 = requestAnimationFrame(() => {
       const id2 = requestAnimationFrame(() => {
         sectionRefs.current[openSection]?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -212,17 +246,21 @@ export function ProductCustomizer({ product }: { product: Product }) {
     setOpenSection((current) => (current === idx ? null : idx))
   }
 
+  const copyCup1ToCup2 = () => {
+    setCoberturas2Sel({ ...coberturasSel })
+    setFrutas2Sel({ ...frutasSel })
+    setComplementos2Sel({ ...complementosSel })
+    setTurbines2Sel({ ...turbinesSel })
+  }
+
   const handleAddToCart = () => {
-    const selectedOptions = {
-      coberturas: selectionToOptions(coberturasSel),
-      frutas: selectionToOptions(frutasSel),
-      complementos: selectionToOptions(complementosSel),
-      turbine: selectionToOptions(turbinesSel),
-    }
+    const cup1Options = buildSelectedOptions(coberturasSel, frutasSel, complementosSel, turbinesSel)
+    const cup2Options = differentCups
+      ? buildSelectedOptions(coberturas2Sel, frutas2Sel, complementos2Sel, turbines2Sel)
+      : null
     const obs = detail.trim()
 
-    // Avulso com quantidade >= 2: aplica combo "Pague 1 Leve 2".
-    // Cada par vira 1 combo (registrado com slug/nome do combo); ímpar vira avulso.
+    // Avulso com quantity >= 2: aplica combo "Pague 1 Leve 2".
     if (isAvulso && pricing.comboPairs > 0) {
       const combo = findComboEquivalent(product)
       if (combo) {
@@ -233,7 +271,10 @@ export function ProductCustomizer({ product }: { product: Product }) {
           basePrice: combo.price,
           quantity: pricing.comboPairs,
           observations: obs,
-          selectedOptions,
+          selectedOptions: cup1Options,
+          // 2 copos diferentes só se aplica quando o combo é exatamente
+          // 1 unidade (qty=2 com remainder=0). canDifferentiate já garante isso.
+          secondCupOptions: differentCups && pricing.comboPairs === 1 ? cup2Options : null,
         })
         if (pricing.remainder > 0) {
           addItem({
@@ -243,7 +284,7 @@ export function ProductCustomizer({ product }: { product: Product }) {
             basePrice: product.price,
             quantity: pricing.remainder,
             observations: obs,
-            selectedOptions,
+            selectedOptions: cup1Options,
           })
         }
         setCartOpen(true)
@@ -259,7 +300,8 @@ export function ProductCustomizer({ product }: { product: Product }) {
       basePrice: product.price,
       quantity,
       observations: obs,
-      selectedOptions,
+      selectedOptions: cup1Options,
+      secondCupOptions: differentCups && isCombo ? cup2Options : null,
     })
     setCartOpen(true)
   }
@@ -342,78 +384,192 @@ export function ProductCustomizer({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* Seções */}
-        <div className="mt-5 space-y-4">
-          {!isAddon && (
-            <>
-              <div ref={(el) => { sectionRefs.current[0] = el }} className="scroll-mt-20">
-                <Section
-                  title="Coberturas"
-                  subtitle="Escolha até 2 opções"
-                  max={2}
-                  items={coberturasItems}
-                  selection={coberturasSel}
-                  onChange={setCoberturasSel}
-                  open={openSection === 0}
-                  onToggle={() => toggleSection(0)}
-                />
-              </div>
-              <div ref={(el) => { sectionRefs.current[1] = el }} className="scroll-mt-20">
-                <Section
-                  title="Frutas"
-                  subtitle="Escolha até 2 opções"
-                  max={2}
-                  items={frutasItems}
-                  selection={frutasSel}
-                  onChange={setFrutasSel}
-                  open={openSection === 1}
-                  onToggle={() => toggleSection(1)}
-                />
-              </div>
-              <div ref={(el) => { sectionRefs.current[2] = el }} className="scroll-mt-20">
-                <Section
-                  title="Complementos"
-                  subtitle="Escolha até 4 opções"
-                  max={4}
-                  items={complementosItems}
-                  selection={complementosSel}
-                  onChange={setComplementosSel}
-                  open={openSection === 2}
-                  onToggle={() => toggleSection(2)}
-                />
-              </div>
-              <div ref={(el) => { sectionRefs.current[3] = el }} className="scroll-mt-20">
-                <Section
-                  title="Turbine seu açaí"
-                  subtitle="Escolha até 1 opção"
-                  max={1}
-                  items={turbines}
-                  selection={turbinesSel}
-                  onChange={setTurbinesSel}
-                  open={openSection === 3}
-                  onToggle={() => toggleSection(3)}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Detalhe */}
-          <div className="overflow-hidden rounded-xl border border-border bg-white">
-            <div className="bg-muted px-4 py-3">
-              <div className="text-sm font-bold text-foreground">Adicionar algum detalhe?</div>
+        {/* Toggle "Quero personalizar cada copo" — só aparece quando há 2 copos */}
+        {canDifferentiate && (
+          <div className="mt-5 rounded-xl border-2 border-primary/30 bg-primary-soft/40 p-4">
+            <div className="text-sm font-bold text-primary md:text-base">
+              <Sparkles className="mr-1.5 inline h-4 w-4 align-[-2px]" />
+              Quer 2 copos diferentes?
             </div>
-            <div className="p-4">
-              <textarea
-                value={detail}
-                onChange={(e) => setDetail(e.target.value.slice(0, 140))}
-                placeholder="Escreva o detalhe aqui ..."
-                rows={3}
-                className="w-full resize-none rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
-              />
-              <div className="mt-1 text-right text-xs text-muted-foreground">{detail.length}/140</div>
+            <p className="mt-0.5 text-xs text-muted-foreground md:text-sm">
+              Por padrão os 2 copos vêm iguais. Ative pra montar cada um do seu jeito.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDifferentCups(false)}
+                className={cn(
+                  "rounded-lg border-2 px-3 py-2 text-xs font-bold transition md:text-sm",
+                  !differentCups
+                    ? "border-primary bg-primary text-white shadow-sm"
+                    : "border-border bg-white text-foreground hover:border-primary/40",
+                )}
+              >
+                Iguais
+              </button>
+              <button
+                type="button"
+                onClick={() => setDifferentCups(true)}
+                className={cn(
+                  "rounded-lg border-2 px-3 py-2 text-xs font-bold transition md:text-sm",
+                  differentCups
+                    ? "border-primary bg-primary text-white shadow-sm"
+                    : "border-border bg-white text-foreground hover:border-primary/40",
+                )}
+              >
+                Personalizar cada um
+              </button>
             </div>
           </div>
+        )}
 
+        {/* Seções */}
+        {!isAddon && !differentCups && (
+          <div className="mt-5 space-y-4">
+            <div ref={(el) => { sectionRefs.current[0] = el }} className="scroll-mt-20">
+              <Section
+                title="Coberturas"
+                subtitle="Escolha até 2 opções"
+                max={2}
+                items={coberturasItems}
+                selection={coberturasSel}
+                onChange={setCoberturasSel}
+                open={openSection === 0}
+                onToggle={() => toggleSection(0)}
+              />
+            </div>
+            <div ref={(el) => { sectionRefs.current[1] = el }} className="scroll-mt-20">
+              <Section
+                title="Frutas"
+                subtitle="Escolha até 2 opções"
+                max={2}
+                items={frutasItems}
+                selection={frutasSel}
+                onChange={setFrutasSel}
+                open={openSection === 1}
+                onToggle={() => toggleSection(1)}
+              />
+            </div>
+            <div ref={(el) => { sectionRefs.current[2] = el }} className="scroll-mt-20">
+              <Section
+                title="Complementos"
+                subtitle="Escolha até 4 opções"
+                max={4}
+                items={complementosItems}
+                selection={complementosSel}
+                onChange={setComplementosSel}
+                open={openSection === 2}
+                onToggle={() => toggleSection(2)}
+              />
+            </div>
+            <div ref={(el) => { sectionRefs.current[3] = el }} className="scroll-mt-20">
+              <Section
+                title="Turbine seu açaí"
+                subtitle="Escolha até 1 opção"
+                max={1}
+                items={turbines}
+                selection={turbinesSel}
+                onChange={setTurbinesSel}
+                open={openSection === 3}
+                onToggle={() => toggleSection(3)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Modo "personalizar cada copo" — 2 grupos com seções abertas */}
+        {!isAddon && differentCups && (
+          <div className="mt-5 space-y-5">
+            {/* Cup 1 */}
+            <div className="rounded-2xl border-2 border-primary/30 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-white">
+                  1
+                </span>
+                <h3 className="text-base font-bold text-primary md:text-lg">Copo 1</h3>
+              </div>
+              <div className="space-y-3">
+                <Section
+                  title="Coberturas" subtitle="Escolha até 2 opções" max={2}
+                  items={coberturasItems} selection={coberturasSel} onChange={setCoberturasSel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Frutas" subtitle="Escolha até 2 opções" max={2}
+                  items={frutasItems} selection={frutasSel} onChange={setFrutasSel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Complementos" subtitle="Escolha até 4 opções" max={4}
+                  items={complementosItems} selection={complementosSel} onChange={setComplementosSel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Turbine seu açaí" subtitle="Escolha até 1 opção" max={1}
+                  items={turbines} selection={turbinesSel} onChange={setTurbinesSel}
+                  open onToggle={() => {}}
+                />
+              </div>
+            </div>
+
+            {/* Cup 2 */}
+            <div className="rounded-2xl border-2 border-primary/30 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-white">
+                    2
+                  </span>
+                  <h3 className="text-base font-bold text-primary md:text-lg">Copo 2</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyCup1ToCup2}
+                  className="rounded-full border border-primary/40 bg-white px-3 py-1 text-[11px] font-semibold text-primary transition hover:bg-primary-soft md:text-xs"
+                >
+                  Copiar do Copo 1
+                </button>
+              </div>
+              <div className="space-y-3">
+                <Section
+                  title="Coberturas" subtitle="Escolha até 2 opções" max={2}
+                  items={coberturasItems} selection={coberturas2Sel} onChange={setCoberturas2Sel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Frutas" subtitle="Escolha até 2 opções" max={2}
+                  items={frutasItems} selection={frutas2Sel} onChange={setFrutas2Sel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Complementos" subtitle="Escolha até 4 opções" max={4}
+                  items={complementosItems} selection={complementos2Sel} onChange={setComplementos2Sel}
+                  open onToggle={() => {}}
+                />
+                <Section
+                  title="Turbine seu açaí" subtitle="Escolha até 1 opção" max={1}
+                  items={turbines} selection={turbines2Sel} onChange={setTurbines2Sel}
+                  open onToggle={() => {}}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Detalhe */}
+        <div className="mt-5 overflow-hidden rounded-xl border border-border bg-white">
+          <div className="bg-muted px-4 py-3">
+            <div className="text-sm font-bold text-foreground">Adicionar algum detalhe?</div>
+          </div>
+          <div className="p-4">
+            <textarea
+              value={detail}
+              onChange={(e) => setDetail(e.target.value.slice(0, 140))}
+              placeholder="Escreva o detalhe aqui ..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+            <div className="mt-1 text-right text-xs text-muted-foreground">{detail.length}/140</div>
+          </div>
         </div>
       </div>
 

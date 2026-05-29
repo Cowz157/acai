@@ -24,7 +24,13 @@ export interface CartItem {
   basePrice: number
   quantity: number
   observations: string
+  /** Opções do primeiro copo (ou opções comuns aos 2 quando secondCupOptions é null). */
   selectedOptions: CartItemOptions
+  /** Quando preenchido, o item representa 2 copos com opções DIFERENTES.
+   *  Usado em combos "Pague 1 Leve 2" e em avulsos com quantity 2 quando
+   *  o cliente ativou o toggle "personalizar cada copo" no customizer.
+   *  Null = comportamento clássico (2 copos idênticos quando combo). */
+  secondCupOptions?: CartItemOptions | null
   subtotal: number
 }
 

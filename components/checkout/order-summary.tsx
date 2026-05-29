@@ -59,6 +59,9 @@ export function OrderSummary({
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-foreground">{it.productName}</div>
+                    {it.secondCupOptions != null && (
+                      <div className="mt-0.5 text-xs font-semibold text-primary">✨ 2 copos personalizados</div>
+                    )}
                     {it.observations && (
                       <div className="mt-0.5 text-xs italic text-muted-foreground">Obs: {it.observations}</div>
                     )}

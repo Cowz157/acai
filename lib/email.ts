@@ -49,6 +49,11 @@ function renderItemsList(items: CartItem[]): string {
         <tr>
           <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <strong>${it.quantity}× ${escapeHtml(it.productName)}</strong>
+            ${
+              it.secondCupOptions != null
+                ? `<br><span style="font-size: 12px; color: #7c3aed; font-weight: 600;">✨ 2 copos personalizados (ver detalhe no painel)</span>`
+                : ""
+            }
           </td>
           <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #16a34a; font-weight: bold;">
             ${formatMoney(it.subtotal)}
