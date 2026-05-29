@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, Check, ChevronDown, Flame, Minus, Plus, ShoppingBag, Sparkles } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, Flame, Minus, Plus, ShoppingBag, Sparkles, Ticket } from "lucide-react"
 import {
   calculateAvulsoTotal,
   coberturas,
@@ -14,6 +14,7 @@ import {
   type Product,
 } from "@/lib/data"
 import { useCart } from "@/lib/cart-store"
+import { calculateCouponDiscount, useActiveCoupon } from "@/lib/coupon-url"
 import { formatMoney } from "@/lib/format"
 import { OptionStepper } from "./option-stepper"
 import { cn } from "@/lib/utils"
@@ -114,6 +115,14 @@ export function ProductCustomizer({ product }: { product: Product }) {
 
   const isAddon = product.kind === "addon"
   const isAvulso = product.category === "avulso" || product.category === "avulso-zero"
+
+  // Cupom ativo (user veio via ?cupom= ou aplicou em sessão anterior).
+  // Mostra preço estimado com cupom abaixo do preço atual — visual coerente
+  // com o ProductCard da home, reforça que o desconto se aplica também aqui.
+  const coupon = useActiveCoupon()
+  const couponDiscount = coupon ? calculateCouponDiscount(coupon, product.price) : 0
+  const priceWithCoupon = product.price - couponDiscount
+  const showCouponPrice = coupon !== null && couponDiscount > 0
 
   const addItem = useCart((s) => s.addItem)
   const setCartOpen = useCart((s) => s.setOpen)
@@ -296,6 +305,17 @@ export function ProductCustomizer({ product }: { product: Product }) {
                 ) : null}
                 <div className="text-2xl font-extrabold text-success md:text-3xl">R$ {formatMoney(product.price)}</div>
               </div>
+              {showCouponPrice && (
+                <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-lg border border-dashed border-primary bg-primary-soft px-3 py-1.5">
+                  <Ticket className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-primary/80 md:text-[11px]">
+                    com cupom {coupon.code}
+                  </span>
+                  <span className="text-sm font-extrabold text-primary md:text-base">
+                    R$ {formatMoney(priceWithCoupon)}
+                  </span>
+                </div>
+              )}
               {!isAddon && !comboApplied && (
                 <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-semibold text-primary">
                   <Flame className="h-3.5 w-3.5" /> Promoção válida só hoje

@@ -36,6 +36,9 @@ interface PaymentStepProps {
   appliedCoupon: AppliedCoupon | null
   onCouponApplied: (coupon: AppliedCoupon) => void
   onCouponRemoved: () => void
+  /** Valor base pro cálculo do cupom — preço do item mais caro do carrinho.
+   *  Cupom vale pra 1 produto só, então server calcula desconto em cima disso. */
+  couponBaseAmount: number
 }
 
 /**
@@ -143,6 +146,7 @@ export function PaymentStep({
   appliedCoupon,
   onCouponApplied,
   onCouponRemoved,
+  couponBaseAmount,
 }: PaymentStepProps) {
   // Sempre força "pix" — outros métodos não estão mais disponíveis no UI
   const initialMethod: PaymentMethod = defaultValues?.method === "pix" ? "pix" : "pix"
@@ -198,7 +202,7 @@ export function PaymentStep({
       )}
 
       <CouponField
-        subtotal={subtotal}
+        subtotal={couponBaseAmount}
         customerEmail={customerEmail}
         applied={appliedCoupon}
         onApplied={onCouponApplied}

@@ -2,9 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Info, ShoppingBag, X } from "lucide-react"
+import { Info, ShoppingBag, Ticket, X } from "lucide-react"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
-import { useActiveCoupon } from "@/lib/coupon-url"
+import { calculateCartCouponDiscount, useActiveCoupon } from "@/lib/coupon-url"
 import { formatMoneyBR } from "@/lib/format"
 import { CartItem } from "./cart-item"
 import { EmptyCart } from "./empty-cart"
@@ -14,14 +14,16 @@ export function CartDrawer() {
   const isOpen = useCart((s) => s.isOpen)
   const setOpen = useCart((s) => s.setOpen)
   const items = useCart((s) => s.items)
-  const total = items.reduce((sum, it) => sum + it.subtotal, 0)
+  const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0)
+  const coupon = useActiveCoupon()
+  // Cupom vale pra 1 produto (o mais caro). discountBrl é calculado em
+  // cima do basePrice de 1 unidade do item de maior valor — NÃO multiplica
+  // por quantity. Aviso aparece quando user adiciona mais de 1 item pra
+  // educar essa regra antes que ele descubra no checkout.
+  const { discountBrl: couponDiscount } = calculateCartCouponDiscount(items, coupon)
+  const total = Math.max(0, subtotal - couponDiscount)
   const missing = Math.max(0, MIN_ORDER_VALUE - total)
   const canCheckout = items.length > 0 && total >= MIN_ORDER_VALUE
-  const coupon = useActiveCoupon()
-  // Aviso só faz sentido quando o cliente tem cupom ativo E tá adicionando
-  // mais de 1 item. Educacional: o cupom dá desconto único no pedido
-  // inteiro, não multiplica por item. Evita user achar que ganha 2× o
-  // desconto pegando 2 açaís.
   const totalQty = items.reduce((sum, it) => sum + it.quantity, 0)
   const showCouponNotice = coupon !== null && totalQty > 1
 
@@ -113,12 +115,21 @@ export function CartDrawer() {
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-semibold text-foreground">{formatMoneyBR(total)}</span>
+                <span className="font-semibold text-foreground">{formatMoneyBR(subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Taxa de entrega</span>
                 <span className="font-bold text-success">Grátis</span>
               </div>
+              {coupon && couponDiscount > 0 && (
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1 text-primary">
+                    <Ticket className="h-3 w-3" />
+                    Cupom <strong>{coupon.code}</strong>
+                  </span>
+                  <span className="font-semibold text-primary tabular-nums">− {formatMoneyBR(couponDiscount)}</span>
+                </div>
+              )}
               <div className="flex items-baseline justify-between border-t border-border pt-2">
                 <span className="font-bold text-foreground">Total</span>
                 <span className="text-xl font-extrabold text-success">{formatMoneyBR(total)}</span>
@@ -136,7 +147,7 @@ export function CartDrawer() {
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-soft px-3 py-2 text-xs leading-snug text-primary">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
-                  Cupom <strong>{coupon.code}</strong> dá desconto único no pedido inteiro (1 uso por cliente). Aproveite!
+                  Cupom <strong>{coupon.code}</strong> vale só pra 1 açaí (o de maior valor). Os outros vão sem desconto.
                 </span>
               </div>
             )}

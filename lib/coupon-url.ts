@@ -131,20 +131,56 @@ export function clearStoredCoupon(): void {
 }
 
 /**
- * Calcula desconto aplicado num subtotal pro cupom dado. Usado pelo
- * ProductCard pra mostrar preço com cupom, pelo CouponWelcomeModal pra
- * mostrar "20% OFF", etc. Não substitui validação real do checkout.
+ * Calcula desconto aplicado num valor (preço de item ou subtotal) pro
+ * cupom dado. Helper genérico — usado por:
+ *   - ProductCard: passa product.price pra mostrar preço com cupom no card
+ *   - calculateCartCouponDiscount abaixo: aplica em UM item do carrinho
+ *
+ * Não substitui validação real do checkout (/api/coupons/validate).
  */
-export function calculateCouponDiscount(coupon: CouponInfo, subtotal: number): number {
+export function calculateCouponDiscount(coupon: CouponInfo, baseAmount: number): number {
   let discount = 0
   if (coupon.discount_type === "percentage") {
-    discount = (subtotal * coupon.discount_value) / 100
+    discount = (baseAmount * coupon.discount_value) / 100
   } else {
     discount = coupon.discount_value
   }
   discount = Math.round(discount * 100) / 100
-  if (discount > subtotal) discount = subtotal
+  if (discount > baseAmount) discount = baseAmount
   return discount
+}
+
+/**
+ * Regra de aplicação do cupom no carrinho: vale pra UM produto, o de
+ * maior preço unitário (maximiza valor pro cliente). Items com quantity
+ * > 1 ainda só ganham desconto em 1 unidade.
+ *
+ * Retorna o desconto em reais + qual price serviu de base — útil pra UI
+ * mostrar "no açaí de maior valor (R$ X,XX)".
+ *
+ * Convenção "1 produto":
+ *   - Cliente compra 1× 300ml (R$19,90) → desconto: 20% × 19,90 = R$3,98
+ *   - Cliente compra 2× 300ml (R$19,90 cada) → desconto: R$3,98 (1 só)
+ *   - Cliente compra 1× 300ml + 1× 700ml → desconto: 20% × 26,90 = R$5,38
+ *     (aplica no 700ml por ser o mais caro)
+ */
+export function calculateCartCouponDiscount(
+  items: Array<{ basePrice: number; productName: string }>,
+  coupon: CouponInfo | null,
+): { discountBrl: number; appliedItemPrice: number; appliedItemName: string | null } {
+  if (!coupon || items.length === 0) {
+    return { discountBrl: 0, appliedItemPrice: 0, appliedItemName: null }
+  }
+  let mostExpensive = items[0]
+  for (const it of items) {
+    if (it.basePrice > mostExpensive.basePrice) mostExpensive = it
+  }
+  const discount = calculateCouponDiscount(coupon, mostExpensive.basePrice)
+  return {
+    discountBrl: discount,
+    appliedItemPrice: mostExpensive.basePrice,
+    appliedItemName: mostExpensive.productName,
+  }
 }
 
 /**

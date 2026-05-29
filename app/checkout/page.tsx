@@ -15,7 +15,7 @@ import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { unmaskDigits } from "@/lib/format"
 import { getStoredUtms } from "@/lib/utms"
-import { clearStoredCoupon, getStoredCoupon } from "@/lib/coupon-url"
+import { calculateCartCouponDiscount, clearStoredCoupon, getStoredCoupon } from "@/lib/coupon-url"
 import type { AppliedCoupon } from "@/components/checkout/coupon-field"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
 import { AddressStep } from "@/components/checkout/address-step"
@@ -80,6 +80,13 @@ export default function CheckoutPage() {
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items])
   const shippingPrice = getShippingOption(shippingMethod).price
   const couponDiscount = appliedCoupon?.discountBrl ?? 0
+  // Cupom vale pra 1 produto (o de maior valor). O server calcula em cima
+  // de couponBaseAmount, NÃO do subtotal inteiro. Usado pelo auto-apply
+  // useEffect e passado pro CouponField pra validação manual.
+  const couponBaseAmount = useMemo(() => {
+    if (items.length === 0) return 0
+    return Math.max(...items.map((it) => it.basePrice))
+  }, [items])
   // Desconto sai do subtotal (não do frete nem da doação). Math.max evita
   // total negativo caso cupom > subtotal por algum motivo.
   const total = Math.max(0, subtotal - couponDiscount) + shippingPrice + donationAmount
@@ -113,7 +120,9 @@ export default function CheckoutPage() {
     void fetch("/api/coupons/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: couponFromUrl, subtotal, email: identification.email }),
+      // Manda preço do item mais caro como "subtotal" porque a regra é
+      // "cupom em 1 produto só". Server calcula 20% sobre esse valor.
+      body: JSON.stringify({ code: couponFromUrl, subtotal: couponBaseAmount, email: identification.email }),
     })
       .then((r) => r.json())
       .then((data: { valid: boolean; discountBrl?: number; coupon?: { id: string; code: string }; error?: string }) => {
@@ -134,7 +143,7 @@ export default function CheckoutPage() {
       .catch(() => {
         // Erro de rede — silencioso (mesma lógica)
       })
-  }, [step, identification?.email, appliedCoupon, couponFromUrl, subtotal])
+  }, [step, identification?.email, appliedCoupon, couponFromUrl, couponBaseAmount])
 
   // Se o cliente reduziu o cart abaixo do threshold da doação após já ter
   // selecionado um valor, zera pra não cobrar algo que ele não vê mais.
@@ -445,6 +454,7 @@ export default function CheckoutPage() {
             appliedCoupon={appliedCoupon}
             onCouponApplied={setAppliedCoupon}
             onCouponRemoved={() => setAppliedCoupon(null)}
+            couponBaseAmount={couponBaseAmount}
           />
         )}
 
