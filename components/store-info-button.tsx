@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Bike, Check, CheckCircle2, CreditCard, Info, MapPin, Package, Wallet, X } from "lucide-react"
+import { ArrowRight, Bike, Check, CheckCircle2, CreditCard, Info, MapPin, Wallet, X } from "lucide-react"
 import { useDetectedLocation } from "@/lib/detected-location"
 
 export function StoreInfoButton() {
@@ -78,10 +78,9 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
       </header>
 
       {/* Conteúdo */}
-      <div className="space-y-6 px-6 py-6">
+      <div className="flex-1 space-y-6 px-6 py-6">
         <Section title="Tipos de Entrega">
           <Item icon={<Bike className="h-4 w-4" />} text="Entrega Motoboy" />
-          <Item icon={<Package className="h-4 w-4" />} text="Retirada na loja" />
         </Section>
 
         <Section title="Formas de Pagamento">
@@ -100,7 +99,7 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
               <span className="inline-flex items-center gap-2 text-muted-foreground">
                 Cartão
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                  Em manutenção
+                  Indisponível no momento
                 </span>
               </span>
             }
@@ -108,16 +107,15 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
           />
         </Section>
 
-        <Section title="Endereço">
-          <Item icon={<MapPin className="h-4 w-4" />} text={cityLabel} />
-        </Section>
-
-        <Section title="Áreas de Entrega">
+        <Section title="Atende em">
           <div className="rounded-xl border border-primary-soft bg-white p-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground">{cityLabel}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">Tempo estimado: 30-50 min</p>
+              <div className="flex min-w-0 items-center gap-2">
+                <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-foreground">{cityLabel}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Tempo estimado: 30-50 min</p>
+                </div>
               </div>
               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[10px] font-extrabold uppercase text-success">
                 <Check className="h-3 w-3" strokeWidth={3} />
@@ -126,6 +124,18 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         </Section>
+      </div>
+
+      {/* Footer com CTA — aproveita a atenção do lead pra voltar pro cardápio */}
+      <div className="sticky bottom-0 border-t border-border bg-white px-6 py-4">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
+        >
+          Ver cardápio
+          <ArrowRight className="h-4 w-4" />
+        </button>
       </div>
     </aside>
   )
