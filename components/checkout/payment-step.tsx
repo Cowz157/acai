@@ -55,7 +55,7 @@ interface OptionProps {
   onSelect: () => void
   icon: React.ReactNode
   title: string
-  description: string
+  description?: string
   badge?: string
   badgeTone?: "success" | "muted"
   disabled?: boolean
@@ -123,7 +123,7 @@ function PaymentOption({
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground">{description}</div>
+          {description && <div className="text-xs text-muted-foreground">{description}</div>}
           {children && <div className="mt-2">{children}</div>}
         </div>
       </div>
@@ -189,8 +189,7 @@ export function PaymentStep({
           selected={false}
           onSelect={() => {}}
           icon={<CreditCard className="h-4 w-4" />}
-          title="Cartão na entrega"
-          description="Crédito ou débito na maquininha"
+          title="Cartão"
           badge="Indisponível no momento"
           badgeTone="muted"
           disabled
