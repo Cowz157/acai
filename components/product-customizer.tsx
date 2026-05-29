@@ -146,8 +146,11 @@ export function ProductCustomizer({ product }: { product: Product }) {
 
   const [detail, setDetail] = useState("")
   const [quantity, setQuantity] = useState(1)
-  /** Índice da seção aberta (0..3). null = todas fechadas. Só ativo no modo "iguais". */
+  /** Índice da seção aberta do Copo 1 (0..3). null = todas fechadas.
+   *  No modo "iguais", representa a única coluna de seções. */
   const [openSection, setOpenSection] = useState<number | null>(0)
+  /** Índice da seção aberta do Copo 2 (0..3). Só relevante quando differentCups=true. */
+  const [openSection2, setOpenSection2] = useState<number | null>(0)
 
   const isAddon = product.kind === "addon"
   const isAvulso = product.category === "avulso" || product.category === "avulso-zero"
@@ -251,17 +254,28 @@ export function ProductCustomizer({ product }: { product: Product }) {
   /** Marcado quando uma seção foi aberta via auto-advance (não por clique manual). */
   const autoAdvancedRef = useRef(false)
 
-  // Auto-advance só no modo "iguais" (modo "diferentes" tem 2 grupos abertos,
-  // navegação manual é mais intuitiva).
+  // Auto-advance das seções do Copo 1 (vale tanto no modo "iguais" quanto
+  // no modo "diferentes" — em ambos representa as escolhas do primeiro copo).
   useEffect(() => {
-    if (differentCups) return
     if (openSection === null) return
     if (sectionTotals[openSection] < sectionMaxes[openSection]) return
     const next = openSection + 1 < sectionMaxes.length ? openSection + 1 : null
     autoAdvancedRef.current = next !== null
     setOpenSection(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coberturasTotal, frutasTotal, complementosTotal, turbinesTotal, differentCups])
+  }, [coberturasTotal, frutasTotal, complementosTotal, turbinesTotal])
+
+  // Auto-advance das seções do Copo 2 (só relevante no modo "diferentes").
+  // Sem scroll automático — Copo 2 fica no acordeão expandido, scroll manual.
+  const sectionTotals2 = [coberturas2Total, frutas2Total, complementos2Total, turbines2Total]
+  useEffect(() => {
+    if (!differentCups) return
+    if (openSection2 === null) return
+    if (sectionTotals2[openSection2] < sectionMaxes[openSection2]) return
+    const next = openSection2 + 1 < sectionMaxes.length ? openSection2 + 1 : null
+    setOpenSection2(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coberturas2Total, frutas2Total, complementos2Total, turbines2Total, differentCups])
 
   useEffect(() => {
     if (!autoAdvancedRef.current) return
@@ -282,6 +296,9 @@ export function ProductCustomizer({ product }: { product: Product }) {
 
   const toggleSection = (idx: number) => {
     setOpenSection((current) => (current === idx ? null : idx))
+  }
+  const toggleSection2 = (idx: number) => {
+    setOpenSection2((current) => (current === idx ? null : idx))
   }
 
   const copyCup1ToCup2 = () => {
@@ -427,14 +444,9 @@ export function ProductCustomizer({ product }: { product: Product }) {
             quem ignora o bloco continua o fluxo normal sem precisar clicar. */}
         {canDifferentiate && (
           <div className="mt-4 rounded-xl border border-dashed border-primary/60 bg-primary-soft/30 px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                <span>Como você quer os 2 copos?</span>
-              </div>
-              <span className="rounded-full bg-success px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white md:text-[10px]">
-                Sem custo
-              </span>
+            <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              <span>Como você quer os 2 copos?</span>
             </div>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
               <button
@@ -545,22 +557,22 @@ export function ProductCustomizer({ product }: { product: Product }) {
                   <Section
                     title="Coberturas" subtitle="Escolha até 2 opções" max={2}
                     items={coberturasItems} selection={coberturasSel} onChange={setCoberturasSel}
-                    open onToggle={() => {}}
+                    open={openSection === 0} onToggle={() => toggleSection(0)}
                   />
                   <Section
                     title="Frutas" subtitle="Escolha até 2 opções" max={2}
                     items={frutasItems} selection={frutasSel} onChange={setFrutasSel}
-                    open onToggle={() => {}}
+                    open={openSection === 1} onToggle={() => toggleSection(1)}
                   />
                   <Section
                     title="Complementos" subtitle="Escolha até 4 opções" max={4}
                     items={complementosItems} selection={complementosSel} onChange={setComplementosSel}
-                    open onToggle={() => {}}
+                    open={openSection === 2} onToggle={() => toggleSection(2)}
                   />
                   <Section
                     title="Turbine seu açaí" subtitle="Escolha até 1 opção" max={1}
                     items={turbines} selection={turbinesSel} onChange={setTurbinesSel}
-                    open onToggle={() => {}}
+                    open={openSection === 3} onToggle={() => toggleSection(3)}
                   />
                 </div>
               )}
@@ -597,22 +609,22 @@ export function ProductCustomizer({ product }: { product: Product }) {
                   <Section
                     title="Coberturas" subtitle="Escolha até 2 opções" max={2}
                     items={coberturasItems} selection={coberturas2Sel} onChange={setCoberturas2Sel}
-                    open onToggle={() => {}}
+                    open={openSection2 === 0} onToggle={() => toggleSection2(0)}
                   />
                   <Section
                     title="Frutas" subtitle="Escolha até 2 opções" max={2}
                     items={frutasItems} selection={frutas2Sel} onChange={setFrutas2Sel}
-                    open onToggle={() => {}}
+                    open={openSection2 === 1} onToggle={() => toggleSection2(1)}
                   />
                   <Section
                     title="Complementos" subtitle="Escolha até 4 opções" max={4}
                     items={complementosItems} selection={complementos2Sel} onChange={setComplementos2Sel}
-                    open onToggle={() => {}}
+                    open={openSection2 === 2} onToggle={() => toggleSection2(2)}
                   />
                   <Section
                     title="Turbine seu açaí" subtitle="Escolha até 1 opção" max={1}
                     items={turbines} selection={turbines2Sel} onChange={setTurbines2Sel}
-                    open onToggle={() => {}}
+                    open={openSection2 === 3} onToggle={() => toggleSection2(3)}
                   />
                 </div>
               )}
