@@ -191,7 +191,7 @@ export function PaymentStep({
           icon={<CreditCard className="h-4 w-4" />}
           title="Cartão na entrega"
           description="Crédito ou débito na maquininha"
-          badge="Em manutenção"
+          badge="Indisponível no momento"
           badgeTone="muted"
           disabled
         />
