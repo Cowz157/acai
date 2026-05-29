@@ -24,14 +24,29 @@ export interface CartItem {
   basePrice: number
   quantity: number
   observations: string
-  /** Opções do primeiro copo (ou opções comuns aos 2 quando secondCupOptions é null). */
+  /** Opções do PRIMEIRO copo. Quando additionalCupsOptions é null, todos os
+   *  demais copos (combo Pague 1 Leve 2 ou avulso qty>=2) seguem essas opções. */
   selectedOptions: CartItemOptions
-  /** Quando preenchido, o item representa 2 copos com opções DIFERENTES.
-   *  Usado em combos "Pague 1 Leve 2" e em avulsos com quantity 2 quando
-   *  o cliente ativou o toggle "personalizar cada copo" no customizer.
-   *  Null = comportamento clássico (2 copos idênticos quando combo). */
+  /** Opções dos copos 2..N quando o cliente ativou "Cada um diferente" no
+   *  customizer. Length esperado = (totalCups - 1) — pode ser 1 (combo direto),
+   *  N-1 (avulso qty=N) etc. Null = todos os copos seguem `selectedOptions`. */
+  additionalCupsOptions?: CartItemOptions[] | null
+  /** @deprecated Mantido pra retrocompat com items antigos no localStorage de
+   *  sessões anteriores (quando só suportava 2 copos diferentes). Itens novos
+   *  usam `additionalCupsOptions`. Helper `getExtraCups` lê os 2 corretamente. */
   secondCupOptions?: CartItemOptions | null
   subtotal: number
+}
+
+/** Lê os "copos extras" (cup 2..N) de um item de carrinho, lidando com a
+ *  retrocompat: itens novos usam `additionalCupsOptions`; itens antigos no
+ *  localStorage de sessões anteriores usam `secondCupOptions` (1 copo extra). */
+export function getExtraCups(item: CartItem): CartItemOptions[] {
+  if (item.additionalCupsOptions && item.additionalCupsOptions.length > 0) {
+    return item.additionalCupsOptions
+  }
+  if (item.secondCupOptions) return [item.secondCupOptions]
+  return []
 }
 
 interface CartState {

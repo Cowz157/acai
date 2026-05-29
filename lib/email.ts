@@ -1,7 +1,7 @@
 import "server-only"
 
 import { Resend } from "resend"
-import type { CartItem } from "./cart-store"
+import { type CartItem, getExtraCups } from "./cart-store"
 import type { DeliveryData, GiftData } from "./checkout-types"
 import { getSupabaseAdmin } from "./supabase-admin"
 
@@ -44,22 +44,23 @@ function escapeHtml(unsafe: string): string {
 
 function renderItemsList(items: CartItem[]): string {
   return items
-    .map(
-      (it) => `
+    .map((it) => {
+      const extras = getExtraCups(it)
+      const totalCups = 1 + extras.length
+      const personalizedLabel = extras.length > 0
+        ? `<br><span style="font-size: 12px; color: #7c3aed; font-weight: 600;">✨ ${totalCups} copos personalizados (ver detalhe no painel)</span>`
+        : ""
+      return `
         <tr>
           <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <strong>${it.quantity}× ${escapeHtml(it.productName)}</strong>
-            ${
-              it.secondCupOptions != null
-                ? `<br><span style="font-size: 12px; color: #7c3aed; font-weight: 600;">✨ 2 copos personalizados (ver detalhe no painel)</span>`
-                : ""
-            }
+            ${personalizedLabel}
           </td>
           <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right; color: #16a34a; font-weight: bold;">
             ${formatMoney(it.subtotal)}
           </td>
-        </tr>`,
-    )
+        </tr>`
+    })
     .join("")
 }
 

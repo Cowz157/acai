@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Minus, Plus, Trash2 } from "lucide-react"
-import { type CartItem as CartItemType, type CartItemOptions, useCart } from "@/lib/cart-store"
+import { type CartItem as CartItemType, type CartItemOptions, getExtraCups, useCart } from "@/lib/cart-store"
 import { formatMoneyBR } from "@/lib/format"
 
 interface CartItemProps {
@@ -51,7 +51,9 @@ function CupOptionsList({ options }: { options: CartItemOptions }) {
 export function CartItem({ item }: CartItemProps) {
   const { updateItemQuantity, removeItem } = useCart()
 
-  const hasTwoCups = item.secondCupOptions != null
+  const extraCups = getExtraCups(item)
+  const hasMultipleCups = extraCups.length > 0
+  const totalCups = 1 + extraCups.length
 
   return (
     <div className="flex gap-3 border-b border-border px-4 py-4">
@@ -68,16 +70,22 @@ export function CartItem({ item }: CartItemProps) {
       <div className="min-w-0 flex-1">
         <h3 className="text-sm font-bold leading-snug text-foreground">{item.productName}</h3>
 
-        {hasTwoCups ? (
+        {hasMultipleCups ? (
           <div className="mt-1.5 space-y-2">
             <div className="rounded-md border border-primary/20 bg-primary-soft/40 px-2 py-1.5">
-              <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">Copo 1</div>
+              <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                Copo 1 de {totalCups}
+              </div>
               <CupOptionsList options={item.selectedOptions} />
             </div>
-            <div className="rounded-md border border-primary/20 bg-primary-soft/40 px-2 py-1.5">
-              <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">Copo 2</div>
-              <CupOptionsList options={item.secondCupOptions!} />
-            </div>
+            {extraCups.map((opts, idx) => (
+              <div key={idx} className="rounded-md border border-primary/20 bg-primary-soft/40 px-2 py-1.5">
+                <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                  Copo {idx + 2} de {totalCups}
+                </div>
+                <CupOptionsList options={opts} />
+              </div>
+            ))}
             {item.observations && (
               <p className="text-[11px] italic leading-snug text-muted-foreground">
                 <span className="font-semibold not-italic">Obs:</span> {item.observations}

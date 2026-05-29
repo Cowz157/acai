@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
-import { type CartItem } from "@/lib/cart-store"
+import { type CartItem, getExtraCups } from "@/lib/cart-store"
 import { formatMoneyBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -59,9 +59,16 @@ export function OrderSummary({
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-foreground">{it.productName}</div>
-                    {it.secondCupOptions != null && (
-                      <div className="mt-0.5 text-xs font-semibold text-primary">✨ 2 copos personalizados</div>
-                    )}
+                    {(() => {
+                      const extras = getExtraCups(it)
+                      if (extras.length === 0) return null
+                      const total = 1 + extras.length
+                      return (
+                        <div className="mt-0.5 text-xs font-semibold text-primary">
+                          ✨ {total} copos personalizados
+                        </div>
+                      )
+                    })()}
                     {it.observations && (
                       <div className="mt-0.5 text-xs italic text-muted-foreground">Obs: {it.observations}</div>
                     )}
