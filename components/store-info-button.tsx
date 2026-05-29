@@ -1,178 +1,20 @@
-"use client"
+import Link from "next/link"
+import { Info } from "lucide-react"
 
-import { useEffect, useState } from "react"
-import { ArrowRight, Bike, Check, CheckCircle2, CreditCard, Info, MapPin, Wallet, X } from "lucide-react"
-import { useDetectedLocation } from "@/lib/detected-location"
-
+/**
+ * Atalho pro painel "Sobre a loja" no header. Antes era um drawer com state
+ * próprio; virou um Link pra `/sobre-a-loja` pra seguir o mesmo padrão visual
+ * de /duvidas, /termos-de-uso e /politica-privacidade — página dedicada com
+ * header roxo VOLTAR + card branco com seções.
+ */
 export function StoreInfoButton() {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    document.body.style.overflow = "hidden"
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
-    }
-    window.addEventListener("keydown", onKey)
-    return () => {
-      document.body.style.overflow = ""
-      window.removeEventListener("keydown", onKey)
-    }
-  }, [open])
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Informações da loja"
-        className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary text-primary transition hover:bg-primary hover:text-white"
-      >
-        <Info className="h-5 w-5" />
-      </button>
-
-      {open && <StoreInfoSidebar onClose={() => setOpen(false)} />}
-    </>
-  )
-}
-
-function StoreInfoSidebar({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <Link
+      href="/sobre-a-loja"
       aria-label="Informações da loja"
-      className="animate-overlay-fade fixed inset-0 z-50 bg-black/50"
-      onClick={onClose}
+      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-primary text-primary transition hover:bg-primary hover:text-white"
     >
-      <SidebarContent onClose={onClose} />
-    </div>
-  )
-}
-
-function SidebarContent({ onClose }: { onClose: () => void }) {
-  // Cidade detectada do lead (IP ou escolha manual no LocationModal).
-  // Tanto "Endereço" quanto "Áreas de Entrega" usam essa cidade pra reforçar
-  // o storytelling de loja local — mesmo padrão do header e do DeliveryBanner.
-  const loc = useDetectedLocation()
-  const cityLabel = loc?.city
-    ? `${loc.city}${loc.stateCode ? ` - ${loc.stateCode}` : ""}`
-    : "Sua região"
-
-  return (
-    <aside
-      className="animate-drawer-in fixed inset-y-0 right-0 flex w-[90%] max-w-[400px] flex-col overflow-y-auto bg-white shadow-2xl"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white px-6 py-4">
-        <h2 className="text-lg font-extrabold text-primary md:text-xl">Sobre a loja</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Fechar"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </header>
-
-      {/* Conteúdo */}
-      <div className="flex-1 space-y-6 px-6 py-6">
-        <Section title="Tipos de Entrega">
-          <Item icon={<Bike className="h-4 w-4" />} text="Entrega Motoboy" />
-        </Section>
-
-        <Section title="Formas de Pagamento">
-          <Item
-            icon={<Wallet className="h-4 w-4" />}
-            text={
-              <span className="inline-flex items-center gap-1.5">
-                Pix
-                <CheckCircle2 className="h-4 w-4 text-success" />
-              </span>
-            }
-          />
-          <Item
-            icon={<CreditCard className="h-4 w-4" />}
-            text={
-              <span className="inline-flex items-center gap-2 text-muted-foreground">
-                Cartão
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                  Indisponível no momento
-                </span>
-              </span>
-            }
-            muted
-          />
-        </Section>
-
-        <Section title="Atende em">
-          <div className="rounded-xl border border-primary-soft bg-white p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <MapPin className="h-4 w-4 shrink-0 text-primary" />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-foreground">{cityLabel}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Tempo estimado: 30-50 min</p>
-                </div>
-              </div>
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[10px] font-extrabold uppercase text-success">
-                <Check className="h-3 w-3" strokeWidth={3} />
-                Grátis hoje
-              </span>
-            </div>
-          </div>
-        </Section>
-      </div>
-
-      {/* Footer com CTA — aproveita a atenção do lead pra voltar pro cardápio */}
-      <div className="sticky bottom-0 border-t border-border bg-white px-6 py-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:brightness-110"
-        >
-          Ver cardápio
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h3 className="text-base font-extrabold text-primary md:text-lg">{title}</h3>
-      <div className="mt-3 space-y-2.5">{children}</div>
-    </section>
-  )
-}
-
-function Item({
-  icon,
-  text,
-  muted = false,
-}: {
-  icon: React.ReactNode
-  text: React.ReactNode
-  muted?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span
-        className={
-          muted
-            ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
-            : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary"
-        }
-      >
-        {icon}
-      </span>
-      <span className={muted ? "text-sm font-medium text-muted-foreground" : "text-sm font-medium text-foreground"}>
-        {text}
-      </span>
-    </div>
+      <Info className="h-5 w-5" />
+    </Link>
   )
 }
