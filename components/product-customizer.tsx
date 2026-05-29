@@ -268,8 +268,16 @@ export function ProductCustomizer({ product }: { product: Product }) {
   // Auto-advance das seções do Copo 2 (só relevante no modo "diferentes").
   // Sem scroll automático — Copo 2 fica no acordeão expandido, scroll manual.
   const sectionTotals2 = [coberturas2Total, frutas2Total, complementos2Total, turbines2Total]
+  /** Suprime o próximo disparo do auto-advance do Cup 2 — usado quando o cliente
+   *  clica em "Copiar do Copo 1": copia os valores mas mantém todas as seções
+   *  fechadas (cliente já validou que quer iguais, não precisa ver detalhe). */
+  const suppressCup2AutoAdvanceRef = useRef(false)
   useEffect(() => {
     if (!differentCups) return
+    if (suppressCup2AutoAdvanceRef.current) {
+      suppressCup2AutoAdvanceRef.current = false
+      return
+    }
     if (openSection2 === null) return
     if (sectionTotals2[openSection2] < sectionMaxes[openSection2]) return
     const next = openSection2 + 1 < sectionMaxes.length ? openSection2 + 1 : null
@@ -318,10 +326,15 @@ export function ProductCustomizer({ product }: { product: Product }) {
   }
 
   const copyCup1ToCup2 = () => {
+    // Cliente já validou que quer iguais — copia valores e mantém tudo fechado.
+    // suppressCup2AutoAdvanceRef bloqueia a cascata de auto-advance que o
+    // useEffect dispararia quando os totals subissem.
+    suppressCup2AutoAdvanceRef.current = true
     setCoberturas2Sel({ ...coberturasSel })
     setFrutas2Sel({ ...frutasSel })
     setComplementos2Sel({ ...complementosSel })
     setTurbines2Sel({ ...turbinesSel })
+    setOpenSection2(null)
   }
 
   const handleAddToCart = () => {
