@@ -54,10 +54,13 @@ create index if not exists coupon_redemptions_coupon_idx on public.coupon_redemp
 create index if not exists coupon_redemptions_email_idx on public.coupon_redemptions (lower(customer_email), coupon_id);
 
 -- =============================================================
--- Cupom inicial: ACAI20 (20% OFF mínimo R$25, max 1× por email)
+-- Cupom inicial: ACAI20 (20% OFF, sem pedido mínimo, max 1× por email)
 -- Usado pelo terceiro toque do lead-recovery (3 dias após abandono).
 -- Sem expires_at — fica disponível enquanto a campanha rodar.
+-- Sem min_subtotal_brl — recovery foca em CONVERTER o lead frio mesmo
+-- em ticket baixo (R$19,90 do 300ml), apostando em LTV de recompra
+-- futura. Fricção do mínimo R$25 mata exatamente no produto entry-level.
 -- =============================================================
 insert into public.coupons (code, discount_type, discount_value, min_subtotal_brl, max_uses_per_email, description)
-values ('ACAI20', 'percentage', 20, 25.00, 1, 'Lead recovery 3º toque — 20% OFF acima de R$25')
+values ('ACAI20', 'percentage', 20, 0, 1, 'Lead recovery 3º toque — 20% OFF (sem pedido mínimo)')
 on conflict (code) do nothing;
