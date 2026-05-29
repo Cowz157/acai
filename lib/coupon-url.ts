@@ -21,10 +21,23 @@
 
 const STORAGE_KEY = "acai-tropical-coupon-url"
 const TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 dias
+/** Evento custom disparado quando storage muda (capture/clear). Permite o
+ *  CouponBanner reagir em tempo real sem polling — quando user chega com
+ *  ?cupom=, banner aparece; quando auto-aplica no checkout, banner some. */
+export const COUPON_STORAGE_EVENT = "acai-coupon-url-changed"
 
 interface StoredCoupon {
   code: string
   capturedAt: number
+}
+
+function dispatchChange(): void {
+  if (typeof window === "undefined") return
+  try {
+    window.dispatchEvent(new Event(COUPON_STORAGE_EVENT))
+  } catch {
+    /* ignora */
+  }
 }
 
 export function captureCouponFromUrl(): void {
@@ -35,6 +48,7 @@ export function captureCouponFromUrl(): void {
   try {
     const stored: StoredCoupon = { code, capturedAt: Date.now() }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+    dispatchChange()
   } catch {
     /* ignora — privado, storage cheio */
   }
@@ -49,6 +63,7 @@ export function getStoredCoupon(): string | null {
     if (!parsed.code || !parsed.capturedAt) return null
     if (Date.now() - parsed.capturedAt > TTL_MS) {
       window.localStorage.removeItem(STORAGE_KEY)
+      dispatchChange()
       return null
     }
     return parsed.code
@@ -61,6 +76,7 @@ export function clearStoredCoupon(): void {
   if (typeof window === "undefined") return
   try {
     window.localStorage.removeItem(STORAGE_KEY)
+    dispatchChange()
   } catch {
     /* ignora */
   }

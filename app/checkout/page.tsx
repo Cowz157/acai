@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import { toast } from "sonner"
 import { getSavedAddress, saveAddress } from "@/lib/address-store"
 import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
@@ -14,7 +13,7 @@ import { getShippingOption, type ShippingMethod } from "@/lib/data"
 import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from "@/lib/order-store"
 import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
-import { formatMoneyBR, unmaskDigits } from "@/lib/format"
+import { unmaskDigits } from "@/lib/format"
 import { getStoredUtms } from "@/lib/utms"
 import { clearStoredCoupon, getStoredCoupon } from "@/lib/coupon-url"
 import type { AppliedCoupon } from "@/components/checkout/coupon-field"
@@ -120,11 +119,12 @@ export default function CheckoutPage() {
       .then((data: { valid: boolean; discountBrl?: number; coupon?: { id: string; code: string }; error?: string }) => {
         if (data.valid && data.coupon && typeof data.discountBrl === "number") {
           setAppliedCoupon({ id: data.coupon.id, code: data.coupon.code, discountBrl: data.discountBrl })
-          toast.success(`Cupom ${data.coupon.code} aplicado automaticamente!`, {
-            description: `Você ganhou ${formatMoneyBR(data.discountBrl)} de desconto 💜`,
-          })
-          // Limpa storage — cliente já usou, próxima sessão não re-tenta
-          // (max_uses_per_email=1 daria silent fail mesmo, mas é higiênico).
+          // SEM toast no auto-apply — o CouponBanner persistente no topo da
+          // página já comunicou "Cupom ACAI20 ativo" desde a home. Mostrar
+          // toast aqui seria redundante + visualmente poluído. O chip verde
+          // que aparece no CouponField + linha "🎁 Cupom ACAI20 − R$ X,XX"
+          // no OrderSummary confirmam visualmente que aplicou.
+          // Limpa storage + dispara evento → banner some sozinho.
           clearStoredCoupon()
         }
         // Se inválido (expirado, esgotado, já usado), silenciosamente não

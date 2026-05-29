@@ -68,9 +68,38 @@ export function CouponField({
         return
       }
       onApplied({ id: data.coupon.id, code: data.coupon.code, discountBrl: data.discountBrl })
-      toast.success(`Cupom ${data.coupon.code} aplicado!`, {
-        description: `Você ganhou ${formatMoneyBR(data.discountBrl)} de desconto 💜`,
-      })
+      // Toast custom com design da marca em vez do toast.success padrão do
+      // sonner (que sai verde brilhante genérico). Visual: ícone roxo + borda
+      // verde sutil + hierarquia code/desconto separadas, combinando com
+      // o CouponField que tá logo abaixo.
+      const appliedCode = data.coupon.code
+      const appliedDiscount = data.discountBrl
+      toast.custom(
+        (id) => (
+          <div className="flex w-full max-w-sm items-start gap-3 rounded-2xl border-2 border-success bg-white p-4 shadow-lg">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-soft">
+              <Ticket className="h-5 w-5 text-success" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">
+                Cupom <span className="text-primary">{appliedCode}</span> aplicado!
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Você ganhou <strong className="text-success">{formatMoneyBR(appliedDiscount)}</strong> de desconto 💜
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(id)}
+              aria-label="Fechar"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ),
+        { duration: 4000 },
+      )
     } catch {
       setError("Erro ao validar. Tente novamente.")
     } finally {
