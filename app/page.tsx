@@ -84,7 +84,10 @@ export default function HomePage() {
                   <div
                     className={cn(
                       "mt-4 grid grid-cols-1 gap-4 md:grid-cols-2",
-                      isPagueLeve ? "lg:grid-cols-4" : "lg:grid-cols-3",
+                      // 4 colunas em desktop pra TODAS as categorias (combos +
+                      // avulsos) — mantém padrão visual consistente. Mobile/
+                      // tablet seguem com 1/2 colunas pra não comprimir.
+                      isPagueLeve || isAvulso ? "lg:grid-cols-4" : "lg:grid-cols-3",
                     )}
                   >
                     {cat.items.map((product) => (
