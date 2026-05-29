@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Loader2, Ticket, X } from "lucide-react"
+import { toast } from "sonner"
 import { formatMoneyBR } from "@/lib/format"
 
 export interface AppliedCoupon {
@@ -67,6 +68,9 @@ export function CouponField({
         return
       }
       onApplied({ id: data.coupon.id, code: data.coupon.code, discountBrl: data.discountBrl })
+      toast.success(`Cupom ${data.coupon.code} aplicado!`, {
+        description: `Você ganhou ${formatMoneyBR(data.discountBrl)} de desconto 💜`,
+      })
     } catch {
       setError("Erro ao validar. Tente novamente.")
     } finally {

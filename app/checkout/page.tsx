@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 import { getSavedAddress, saveAddress } from "@/lib/address-store"
 import { useAuth, useAuthSync } from "@/lib/auth-store"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
@@ -13,7 +14,7 @@ import { getShippingOption, type ShippingMethod } from "@/lib/data"
 import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from "@/lib/order-store"
 import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
-import { unmaskDigits } from "@/lib/format"
+import { formatMoneyBR, unmaskDigits } from "@/lib/format"
 import { getStoredUtms } from "@/lib/utms"
 import type { AppliedCoupon } from "@/components/checkout/coupon-field"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
@@ -31,6 +32,7 @@ type InternalStep = 1 | 2 | 3 | 4
 export default function CheckoutPage() {
   useAuthSync()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const items = useCart((s) => s.items)
   const clearCart = useCart((s) => s.clearCart)
   const user = useAuth((s) => s.user)
@@ -53,6 +55,10 @@ export default function CheckoutPage() {
 
   const finalizedItems = useRef<typeof items>([])
   const beginCheckoutFiredRef = useRef(false)
+  /** Garante que o auto-aplicar de cupom da URL só roda 1× — caso contrário
+   *  user que digite outro cupom manualmente seria sobrescrito pelo da URL
+   *  no próximo re-render. */
+  const autoCouponTriedRef = useRef(false)
 
   useEffect(() => {
     setHydrated(true)
@@ -72,6 +78,47 @@ export default function CheckoutPage() {
     if (!appliedCoupon) return
     if (couponDiscount > subtotal) setAppliedCoupon(null)
   }, [subtotal, appliedCoupon, couponDiscount])
+
+  // Auto-aplicar cupom da URL (?cupom=ACAI20 ou ?coupon=ACAI20). Usado pelos
+  // emails de lead-recovery (3º toque) e qualquer campanha que linke direto
+  // pro checkout com cupom pré-aplicado — dobra a conversão porque user
+  // chega no step de pagamento com desconto já calculado, sem fricção de
+  // digitar/aplicar manualmente.
+  //
+  // Roda 1× quando: step 3 carregou, email do user já disponível, URL tem
+  // o param, e ainda não tentou. autoCouponTriedRef garante o once mesmo
+  // se user remover manualmente depois (não re-aplica em loop).
+  useEffect(() => {
+    if (autoCouponTriedRef.current) return
+    if (step !== 3) return
+    if (!identification?.email) return
+    if (appliedCoupon) return
+    const codeFromUrl = (searchParams?.get("cupom") || searchParams?.get("coupon") || "").trim().toUpperCase()
+    if (!codeFromUrl) return
+
+    autoCouponTriedRef.current = true
+
+    void fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: codeFromUrl, subtotal, email: identification.email }),
+    })
+      .then((r) => r.json())
+      .then((data: { valid: boolean; discountBrl?: number; coupon?: { id: string; code: string }; error?: string }) => {
+        if (data.valid && data.coupon && typeof data.discountBrl === "number") {
+          setAppliedCoupon({ id: data.coupon.id, code: data.coupon.code, discountBrl: data.discountBrl })
+          toast.success(`Cupom ${data.coupon.code} aplicado automaticamente!`, {
+            description: `Você ganhou ${formatMoneyBR(data.discountBrl)} de desconto 💜`,
+          })
+        }
+        // Se inválido (expirado, esgotado, min_subtotal), silenciosamente
+        // não aplica — não polui UX com erro de algo que o user não
+        // tentou ativamente. Ele pode digitar manualmente se quiser.
+      })
+      .catch(() => {
+        // Erro de rede — silencioso (mesma lógica)
+      })
+  }, [step, identification?.email, appliedCoupon, searchParams, subtotal])
 
   // Se o cliente reduziu o cart abaixo do threshold da doação após já ter
   // selecionado um valor, zera pra não cobrar algo que ele não vê mais.

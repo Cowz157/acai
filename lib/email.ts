@@ -984,6 +984,10 @@ function leadRecoveryTemplate(
   const name = firstNameFrom(fullName)
   const ctaUrl = `${SITE_URL}/checkout`
   const homeUrl = SITE_URL
+  // 3º toque linka com ?cupom=ACAI20 — checkout auto-aplica quando user chega
+  // no step 3 (lógica em app/checkout/page.tsx). Reduz fricção a zero: user
+  // não precisa lembrar/digitar o código, só clica e vê desconto aplicado.
+  const couponUrl = `${SITE_URL}/?cupom=ACAI20`
   const unsubUrl = buildUnsubscribeUrl(email, SITE_URL)
 
   let subject = ""
@@ -1039,14 +1043,19 @@ function leadRecoveryTemplate(
         Use o código <strong>ACAI20</strong> no checkout, no campo de cupom (último passo antes do pagamento).
       </p>`
     ctaText = "Usar meu cupom agora 🎁"
-    text = `${name}, separamos um mimo pra você!\n\nSentimos sua falta. Que tal voltar com 20% OFF no seu próximo açaí?\n\nSeu cupom: ACAI20\n20% OFF acima de R$ 25\n\nUse no checkout: ${homeUrl}\n\n— Açaí Paraíso\n${SITE_URL}`
+    text = `${name}, separamos um mimo pra você!\n\nSentimos sua falta. Que tal voltar com 20% OFF no seu próximo açaí?\n\nSeu cupom: ACAI20\n20% OFF acima de R$ 25\n\nUse no checkout (auto-aplicado): ${couponUrl}\n\n— Açaí Paraíso\n${SITE_URL}`
   }
+
+  // CTA URL escolhida por step: 1 vai pro checkout (resume fluxo), 2 vai
+  // pra home (novo pedido do zero, casual), 3 vai pra home com ?cupom=ACAI20
+  // pra auto-aplicar quando user chegar no step de pagamento.
+  const ctaHref = step === 1 ? ctaUrl : step === 2 ? homeUrl : couponUrl
 
   const content = `
     <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 22px;">${heading}</h2>
     ${body}
     <div style="text-align: center; margin: 28px 0;">
-      <a href="${step === 1 ? ctaUrl : homeUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
+      <a href="${ctaHref}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
         ${ctaText}
       </a>
     </div>

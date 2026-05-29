@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Script from "next/script"
 import { Poppins, Nunito } from "next/font/google"
 import { CartUI } from "@/components/cart/cart-ui"
+import { Toaster } from "@/components/ui/sonner"
 import { UtmsCapture } from "@/components/utms-capture"
 import "./globals.css"
 
@@ -78,6 +79,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <UtmsCapture />
         {children}
         <CartUI />
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   )
