@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { getSavedAddress, saveAddress } from "@/lib/address-store"
@@ -32,10 +32,19 @@ type InternalStep = 1 | 2 | 3 | 4
 export default function CheckoutPage() {
   useAuthSync()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const items = useCart((s) => s.items)
   const clearCart = useCart((s) => s.clearCart)
   const user = useAuth((s) => s.user)
+  /** Cupom da URL — lido de window.location.search no mount em vez de
+   *  useSearchParams pra evitar prerender error do Next.js 16 que exige
+   *  Suspense boundary em torno desse hook. Como o /checkout é Client
+   *  Component dinâmico, ler direto da window é mais simples. */
+  const [couponFromUrl, setCouponFromUrl] = useState<string | null>(null)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = (params.get("cupom") || params.get("coupon") || "").trim().toUpperCase()
+    if (code) setCouponFromUrl(code)
+  }, [])
 
   const [hydrated, setHydrated] = useState(false)
   const [step, setStep] = useState<InternalStep>(1)
@@ -93,15 +102,14 @@ export default function CheckoutPage() {
     if (step !== 3) return
     if (!identification?.email) return
     if (appliedCoupon) return
-    const codeFromUrl = (searchParams?.get("cupom") || searchParams?.get("coupon") || "").trim().toUpperCase()
-    if (!codeFromUrl) return
+    if (!couponFromUrl) return
 
     autoCouponTriedRef.current = true
 
     void fetch("/api/coupons/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: codeFromUrl, subtotal, email: identification.email }),
+      body: JSON.stringify({ code: couponFromUrl, subtotal, email: identification.email }),
     })
       .then((r) => r.json())
       .then((data: { valid: boolean; discountBrl?: number; coupon?: { id: string; code: string }; error?: string }) => {
@@ -118,7 +126,7 @@ export default function CheckoutPage() {
       .catch(() => {
         // Erro de rede — silencioso (mesma lógica)
       })
-  }, [step, identification?.email, appliedCoupon, searchParams, subtotal])
+  }, [step, identification?.email, appliedCoupon, couponFromUrl, subtotal])
 
   // Se o cliente reduziu o cart abaixo do threshold da doação após já ter
   // selecionado um valor, zera pra não cobrar algo que ele não vê mais.
