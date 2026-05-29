@@ -18,7 +18,10 @@ import { captureUtmsFromUrl } from "@/lib/utms"
 export function UtmsCapture(): null {
   useEffect(() => {
     captureUtmsFromUrl()
-    captureCouponFromUrl()
+    // captureCouponFromUrl é async (busca info pública do cupom em
+    // /api/coupons/info pra salvar discount_value junto com o code).
+    // Fire-and-forget — se falhar, sem cupom salvo, sem impacto.
+    void captureCouponFromUrl()
   }, [])
   return null
 }

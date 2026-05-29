@@ -1,7 +1,10 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
-import { Check, Sparkles } from "lucide-react"
+import { Check, Sparkles, Ticket } from "lucide-react"
 import { findComboEquivalent, type Product } from "@/lib/data"
+import { calculateCouponDiscount, useActiveCoupon } from "@/lib/coupon-url"
 import { cn } from "@/lib/utils"
 
 function formatPrice(value: number) {
@@ -14,6 +17,14 @@ export function ProductCard({ product }: { product: Product }) {
   const isAvulso = product.category === "avulso" || product.category === "avulso-zero"
   const isCombo = product.category === "pague-leve" || product.category === "pague-leve-zero"
   const hasDiscount = product.oldPrice > product.price
+
+  // Cupom ativo (user veio via ?cupom= ou aplicou manualmente em sessão anterior).
+  // Mostra estimativa visual do preço com cupom no card — desconto real é
+  // aplicado/recalculado no checkout via /api/coupons/validate.
+  const coupon = useActiveCoupon()
+  const couponDiscount = coupon ? calculateCouponDiscount(coupon, product.price) : 0
+  const priceWithCoupon = product.price - couponDiscount
+  const showCouponPrice = coupon !== null && couponDiscount > 0
 
   // Pra avulsos: calcula a economia se o cliente levar 2 (ativa o combo)
   const avulsoCombo = isAvulso ? findComboEquivalent(product) : null
@@ -78,6 +89,16 @@ export function ProductCard({ product }: { product: Product }) {
               <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success md:text-[11px]">
                 Economize R$ {formatPrice(product.oldPrice - product.price)}
               </span>
+            </div>
+          )}
+
+          {showCouponPrice && (
+            <div className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-lg border border-dashed border-primary bg-primary-soft px-2 py-1">
+              <Ticket className="h-3 w-3 shrink-0 text-primary" />
+              <span className="text-[10px] font-bold uppercase tracking-wide text-primary/80 md:text-[11px]">
+                com cupom {coupon.code}
+              </span>
+              <span className="text-xs font-extrabold text-primary md:text-sm">R$ {formatPrice(priceWithCoupon)}</span>
             </div>
           )}
 

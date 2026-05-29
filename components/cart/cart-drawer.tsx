@@ -2,8 +2,9 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ShoppingBag, X } from "lucide-react"
+import { Info, ShoppingBag, X } from "lucide-react"
 import { MIN_ORDER_VALUE, useCart } from "@/lib/cart-store"
+import { useActiveCoupon } from "@/lib/coupon-url"
 import { formatMoneyBR } from "@/lib/format"
 import { CartItem } from "./cart-item"
 import { EmptyCart } from "./empty-cart"
@@ -16,6 +17,13 @@ export function CartDrawer() {
   const total = items.reduce((sum, it) => sum + it.subtotal, 0)
   const missing = Math.max(0, MIN_ORDER_VALUE - total)
   const canCheckout = items.length > 0 && total >= MIN_ORDER_VALUE
+  const coupon = useActiveCoupon()
+  // Aviso só faz sentido quando o cliente tem cupom ativo E tá adicionando
+  // mais de 1 item. Educacional: o cupom dá desconto único no pedido
+  // inteiro, não multiplica por item. Evita user achar que ganha 2× o
+  // desconto pegando 2 açaís.
+  const totalQty = items.reduce((sum, it) => sum + it.quantity, 0)
+  const showCouponNotice = coupon !== null && totalQty > 1
 
   // Bloqueia scroll do body
   useEffect(() => {
@@ -121,6 +129,15 @@ export function CartDrawer() {
               <div className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-xs leading-snug text-danger">
                 Adicione mais <strong>{formatMoneyBR(missing)}</strong> para atingir o pedido mínimo de{" "}
                 {formatMoneyBR(MIN_ORDER_VALUE)}
+              </div>
+            )}
+
+            {showCouponNotice && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary-soft px-3 py-2 text-xs leading-snug text-primary">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Cupom <strong>{coupon.code}</strong> dá desconto único no pedido inteiro (1 uso por cliente). Aproveite!
+                </span>
               </div>
             )}
 
