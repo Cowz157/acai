@@ -190,6 +190,7 @@ export function PaymentStep({
           onSelect={() => {}}
           icon={<CreditCard className="h-4 w-4" />}
           title="Cartão"
+          description="Crédito ou débito na maquininha"
           badge="Indisponível no momento"
           badgeTone="muted"
           disabled
