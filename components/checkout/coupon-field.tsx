@@ -121,9 +121,26 @@ export function CouponField({
     )
   }
 
+  const handleCollapse = () => {
+    setCode("")
+    setError(null)
+    setExpanded(false)
+  }
+
   return (
     <div>
-      <label className="block text-sm font-medium text-foreground">Cupom de desconto</label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="block text-sm font-medium text-foreground">Cupom de desconto</label>
+        <button
+          type="button"
+          onClick={handleCollapse}
+          disabled={disabled || validating}
+          aria-label="Fechar campo de cupom"
+          className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
       <div className="mt-1.5 flex gap-2">
         <input
           type="text"
