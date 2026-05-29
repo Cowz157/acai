@@ -4,7 +4,7 @@ import { sendLeadRecoveryEmail } from "@/lib/email"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60 // mais tempo pra processar batch de até 100 leads
+export const maxDuration = 30 // alinhado com timeout máximo do cron-job.org free tier
 
 const CRON_SECRET = process.env.CRON_SECRET ?? ""
 

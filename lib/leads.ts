@@ -210,9 +210,14 @@ export function isWithinAllowedWindow(stepToFire: 1 | 2 | 3, now: Date = new Dat
  *   - Passou o delay mínimo desde captura (DELAY_MINUTES[próximo step])
  *   - Hora local Brasil está na janela permitida (ALLOWED_HOURS[próximo step])
  *
- * Retorna em batches de 100 pra não estourar timeout do cron.
+ * Default limit=30 calibrado pro timeout máximo de 30s do cron-job.org
+ * free tier: ~500ms por envio Resend × 30 leads = ~15s wall, sobra
+ * margem pra eventuais retries lentos. Roda a cada 30min = capacidade
+ * de 30 × 48 = 1440 leads/dia (muito acima do volume real esperado).
+ * Subir o limit só se mover pra cron-job.org pago (timeout maior) OU
+ * paralelizar envios em chunks via Promise.all no cron handler.
  */
-export async function getLeadsForRecovery(limit = 100, now: Date = new Date()): Promise<LeadRow[]> {
+export async function getLeadsForRecovery(limit = 30, now: Date = new Date()): Promise<LeadRow[]> {
   const admin = getSupabaseAdmin()
   const { data, error } = await admin
     .from("leads")
