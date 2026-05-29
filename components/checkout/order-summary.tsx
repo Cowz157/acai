@@ -12,6 +12,10 @@ interface OrderSummaryProps {
   shippingPrice: number
   total: number
   donationAmount?: number
+  /** Desconto do cupom aplicado, em reais. 0 = sem cupom. */
+  couponDiscount?: number
+  /** Código do cupom (ex: "ACAI20") pra mostrar no breakdown. */
+  couponCode?: string | null
   defaultOpen?: boolean
 }
 
@@ -21,6 +25,8 @@ export function OrderSummary({
   shippingPrice,
   total,
   donationAmount = 0,
+  couponDiscount = 0,
+  couponCode = null,
   defaultOpen = false,
 }: OrderSummaryProps) {
   const [open, setOpen] = useState(defaultOpen)
@@ -76,6 +82,12 @@ export function OrderSummary({
                 <span className="font-bold text-success">Grátis</span>
               )}
             </div>
+            {couponDiscount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-success">🎁 Cupom {couponCode ?? "aplicado"}</span>
+                <span className="font-semibold text-success tabular-nums">− {formatMoneyBR(couponDiscount)}</span>
+              </div>
+            )}
             {donationAmount > 0 && (
               <div className="flex justify-between">
                 <span className="text-primary">💜 Doação solidária</span>

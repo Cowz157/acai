@@ -957,3 +957,150 @@ export async function sendDeliveryFollowupByOrderId(
     return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
   }
 }
+
+// =====================================================================
+// Lead Recovery — 3 toques pra emails capturados no checkout (step 1)
+// que NÃO geraram PIX. Disparado pelo cron /api/cron/lead-recovery.
+//
+// Estratégia (definida em lib/leads.ts):
+//   Toque 1 (~30min) — recapture impulso, casual com emoji
+//   Toque 2 (24h)   — convite leve, "bateu a vontade?"
+//   Toque 3 (72h)   — sweetener com cupom ACAI20 (20% OFF), mais agressivo
+// =====================================================================
+
+import { buildUnsubscribeUrl } from "./unsubscribe-token"
+
+function firstNameFrom(fullName: string | null | undefined): string {
+  if (!fullName) return "você"
+  const first = fullName.trim().split(/\s+/)[0]
+  return first || "você"
+}
+
+function leadRecoveryTemplate(
+  step: 1 | 2 | 3,
+  fullName: string | null | undefined,
+  email: string,
+): { subject: string; html: string; text: string } {
+  const name = firstNameFrom(fullName)
+  const ctaUrl = `${SITE_URL}/checkout`
+  const homeUrl = SITE_URL
+  const unsubUrl = buildUnsubscribeUrl(email, SITE_URL)
+
+  let subject = ""
+  let heading = ""
+  let body = ""
+  let ctaText = "Finalizar meu açaí 🥥"
+  let text = ""
+
+  if (step === 1) {
+    subject = "Tá quase lá 🥥 esqueceu seu açaí?"
+    heading = `${escapeHtml(name)}, faltou só 1 cliquinho! 🥥`
+    body = `
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+        Você começou um pedido na <strong>Açaí Paraíso</strong> mas não finalizou.
+        O carrinho ainda tá aí esperando — leva uns 30 segundos pra terminar.
+      </p>
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+        E lembra: <strong>Pague 1, Leve 2</strong> nos combos. É açaí em dobro pelo mesmo preço 💜
+      </p>`
+    text = `${name}, faltou só 1 cliquinho!\n\nVocê começou um pedido na Açaí Paraíso mas não finalizou. O carrinho ainda tá aí esperando.\n\nE lembra: Pague 1, Leve 2 nos combos.\n\nFinalizar: ${ctaUrl}\n\n— Açaí Paraíso\n${SITE_URL}`
+  } else if (step === 2) {
+    subject = "Bateu a vontade de açaí? 🥥"
+    heading = `${escapeHtml(name)}, tá quente aí? 😎`
+    body = `
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+        Tá quente pra um açaí cremoso bem geladinho hoje?
+        Tua loja preferida tá aqui esperando.
+      </p>
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+        9 complementos grátis em cada combo, entrega rápida e PIX aprovado na hora.
+      </p>`
+    ctaText = "Quero meu açaí agora 💜"
+    text = `${name}, tá quente aí?\n\nTua loja preferida tá aqui esperando — 9 complementos grátis em cada combo, entrega rápida, PIX na hora.\n\nPedir agora: ${homeUrl}\n\n— Açaí Paraíso\n${SITE_URL}`
+  } else {
+    subject = "Toma 20% OFF no seu açaí 💜 (só pra você)"
+    heading = `${escapeHtml(name)}, separamos um mimo pra você 🎁`
+    body = `
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #1a1a1a;">
+        Sentimos sua falta! Que tal voltar com <strong>20% OFF</strong> no seu próximo açaí?
+      </p>
+      <div style="background-color: #fdf4ff; border: 2px dashed #a855f7; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 6px 0; color: #6b21a8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">
+          Seu cupom exclusivo
+        </p>
+        <p style="margin: 0 0 6px 0; color: #4a0e5c; font-size: 32px; font-weight: 800; letter-spacing: 2px;">
+          ACAI20
+        </p>
+        <p style="margin: 0; color: #6b21a8; font-size: 13px;">
+          20% OFF acima de R$ 25 · válido enquanto durar a campanha
+        </p>
+      </div>
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280;">
+        Use o código <strong>ACAI20</strong> no checkout, no campo de cupom (último passo antes do pagamento).
+      </p>`
+    ctaText = "Usar meu cupom agora 🎁"
+    text = `${name}, separamos um mimo pra você!\n\nSentimos sua falta. Que tal voltar com 20% OFF no seu próximo açaí?\n\nSeu cupom: ACAI20\n20% OFF acima de R$ 25\n\nUse no checkout: ${homeUrl}\n\n— Açaí Paraíso\n${SITE_URL}`
+  }
+
+  const content = `
+    <h2 style="margin: 0 0 8px 0; color: #4a0e5c; font-size: 22px;">${heading}</h2>
+    ${body}
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="${step === 1 ? ctaUrl : homeUrl}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 28px; border-radius: 999px; text-decoration: none; font-weight: bold; font-size: 15px;">
+        ${ctaText}
+      </a>
+    </div>
+    <p style="margin: 24px 0 0 0; color: #9ca3af; font-size: 11px; border-top: 1px solid #e5e7eb; padding-top: 16px; text-align: center;">
+      Você recebeu esse email porque começou um pedido em <a href="${SITE_URL}" style="color: #6b7280;">${SITE_URL.replace("https://", "")}</a>.<br>
+      <a href="${unsubUrl}" style="color: #9ca3af;">Não quero mais receber esses emails</a>
+    </p>
+  `
+
+  return { subject, html: baseLayout(content, "Açaí Paraíso 💜"), text }
+}
+
+/**
+ * Resposta inclui `bounced` separado de `error` pra o cron diferenciar:
+ *   - bounced=true → marca lead como bounced (step=98), nunca mais tenta
+ *   - error=true sem bounced → erro transiente, tenta de novo no próximo tick
+ */
+export async function sendLeadRecoveryEmail(input: {
+  email: string
+  fullName: string | null
+  step: 1 | 2 | 3
+}): Promise<{ ok: boolean; bounced?: boolean; error?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY ausente — pulando lead recovery")
+    return { ok: false, error: "RESEND_API_KEY não configurada" }
+  }
+
+  const { subject, html, text } = leadRecoveryTemplate(input.step, input.fullName, input.email)
+
+  try {
+    const resend = getResend()
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: input.email,
+      replyTo: REPLY_TO,
+      subject,
+      html,
+      text,
+      headers: {
+        // List-Unsubscribe RFC 8058 — Gmail/Outlook mostram botão nativo
+        "List-Unsubscribe": `<${buildUnsubscribeUrl(input.email, SITE_URL)}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    })
+    if (error) {
+      console.error(`[email] erro Resend (lead-recovery step=${input.step}): ${JSON.stringify(error)}`)
+      const errName = String((error as { name?: string }).name ?? "").toLowerCase()
+      const errMsg = String((error as { message?: string }).message ?? "").toLowerCase()
+      const bounced = errName.includes("invalid") || errMsg.includes("invalid recipient") || errMsg.includes("not a valid email")
+      return { ok: false, bounced, error: (error as { message?: string }).message ?? "Resend error" }
+    }
+    return { ok: true }
+  } catch (err) {
+    console.error(`[email] exceção (lead-recovery step=${input.step}): ${err instanceof Error ? err.message : err}`)
+    return { ok: false, error: err instanceof Error ? err.message : "erro desconhecido" }
+  }
+}

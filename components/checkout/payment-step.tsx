@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, CreditCard, Loader2, Wallet } from "lucide-react"
 import { formatMoneyBR } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { CouponField, type AppliedCoupon } from "./coupon-field"
 import { DonationSection } from "./donation-section"
 
 /** "cash" mantido no type só pra retrocompat com pedidos antigos no localStorage. UI nova não oferece. */
@@ -29,6 +30,12 @@ interface PaymentStepProps {
   /** Valor adicional doado pelo cliente (em R$). Default 0. */
   donationAmount: number
   onDonationChange: (next: number) => void
+  /** Email do cliente (do step 1) — usado pra validar cupom (max_uses_per_email). */
+  customerEmail: string
+  /** Cupom atualmente aplicado, null se nenhum. */
+  appliedCoupon: AppliedCoupon | null
+  onCouponApplied: (coupon: AppliedCoupon) => void
+  onCouponRemoved: () => void
 }
 
 /**
@@ -132,6 +139,10 @@ export function PaymentStep({
   errorMessage,
   donationAmount,
   onDonationChange,
+  customerEmail,
+  appliedCoupon,
+  onCouponApplied,
+  onCouponRemoved,
 }: PaymentStepProps) {
   // Sempre força "pix" — outros métodos não estão mais disponíveis no UI
   const initialMethod: PaymentMethod = defaultValues?.method === "pix" ? "pix" : "pix"
@@ -185,6 +196,15 @@ export function PaymentStep({
       {subtotal >= DONATION_MIN_SUBTOTAL && (
         <DonationSection value={donationAmount} onChange={onDonationChange} />
       )}
+
+      <CouponField
+        subtotal={subtotal}
+        customerEmail={customerEmail}
+        applied={appliedCoupon}
+        onApplied={onCouponApplied}
+        onRemoved={onCouponRemoved}
+        disabled={loading}
+      />
 
       {errorMessage && (
         <div className="rounded-lg bg-danger-soft px-3 py-2 text-xs font-semibold text-danger">{errorMessage}</div>

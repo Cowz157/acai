@@ -14,6 +14,8 @@ import { generateEtaMinutes, saveOrder, saveOrderRemote, type SavedOrder } from 
 import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { unmaskDigits } from "@/lib/format"
+import { getStoredUtms } from "@/lib/utms"
+import type { AppliedCoupon } from "@/components/checkout/coupon-field"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
 import { AddressStep } from "@/components/checkout/address-step"
 import { ConfirmationStep } from "@/components/checkout/confirmation-step"
@@ -44,6 +46,10 @@ export default function CheckoutPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentAttempt, setPaymentAttempt] = useState(0)
+  /** Cupom aplicado pelo CouponField no step 3. Null = nenhum. Desconto
+   *  é subtraído do total exibido + persistido no SavedOrder.couponCode quando
+   *  PIX é gerado, pra o redeem server-side acontecer no save. */
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
   const finalizedItems = useRef<typeof items>([])
   const beginCheckoutFiredRef = useRef(false)
@@ -54,7 +60,18 @@ export default function CheckoutPage() {
 
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.subtotal, 0), [items])
   const shippingPrice = getShippingOption(shippingMethod).price
-  const total = subtotal + shippingPrice + donationAmount
+  const couponDiscount = appliedCoupon?.discountBrl ?? 0
+  // Desconto sai do subtotal (não do frete nem da doação). Math.max evita
+  // total negativo caso cupom > subtotal por algum motivo.
+  const total = Math.max(0, subtotal - couponDiscount) + shippingPrice + donationAmount
+
+  // Se o subtotal mudar (user voltou e mexeu no carrinho) e o desconto agora
+  // violaria as regras do cupom (ex: min_subtotal), remove o cupom — UX honesta
+  // em vez de mostrar desconto que não vai ser aceito no save.
+  useEffect(() => {
+    if (!appliedCoupon) return
+    if (couponDiscount > subtotal) setAppliedCoupon(null)
+  }, [subtotal, appliedCoupon, couponDiscount])
 
   // Se o cliente reduziu o cart abaixo do threshold da doação após já ter
   // selecionado um valor, zera pra não cobrar algo que ele não vê mais.
@@ -147,6 +164,24 @@ export default function CheckoutPage() {
       phone: data.phone,
       fullName: data.fullName,
     })
+    // Captura de lead pra recovery email (fire-and-forget). Se o user não
+    // gerar PIX nos próximos minutos, o cron lead-recovery dispara 3 toques
+    // em horários estratégicos. Marcado como convertido quando saveOrderRemote
+    // roda. Falha silenciosa — não bloqueia fluxo do user.
+    const utms = getStoredUtms()
+    void fetch("/api/leads/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: data.email,
+        fullName: data.fullName,
+        phone: data.phone ?? null,
+        utmSource: utms.utm_source || null,
+        utmCampaign: utms.utm_campaign || null,
+      }),
+    }).catch(() => {
+      // sem-op: lead perdido < user bloqueado por bug de tracking
+    })
     setStep(2)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
@@ -202,7 +237,13 @@ export default function CheckoutPage() {
     finalizedItems.current = items
     setConfirmedOrder(order)
     saveOrder(order)
-    void saveOrderRemote(order, user?.id ?? null)
+    // appliedCoupon (se houver) vai como extras pra o /api/orders/create
+    // processar o redeem em coupon_redemptions e markLeadConverted no email.
+    void saveOrderRemote(order, user?.id ?? null, {
+      couponId: appliedCoupon?.id ?? null,
+      couponCode: appliedCoupon?.code ?? null,
+      couponDiscount: appliedCoupon?.discountBrl ?? null,
+    })
     // Email transacional pra cash/card (PIX é disparado pelo polling em /acompanhar quando aprovado)
     if (!isPix) {
       void fetch("/api/orders/send-confirmation-email", {
@@ -304,6 +345,8 @@ export default function CheckoutPage() {
             shippingPrice={shippingPrice}
             total={total}
             donationAmount={donationAmount}
+            couponDiscount={couponDiscount}
+            couponCode={appliedCoupon?.code ?? null}
             defaultOpen={false}
           />
         )}
@@ -335,6 +378,10 @@ export default function CheckoutPage() {
             errorMessage={paymentError}
             donationAmount={donationAmount}
             onDonationChange={setDonationAmount}
+            customerEmail={identification?.email ?? ""}
+            appliedCoupon={appliedCoupon}
+            onCouponApplied={setAppliedCoupon}
+            onCouponRemoved={() => setAppliedCoupon(null)}
           />
         )}
 

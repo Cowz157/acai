@@ -267,7 +267,18 @@ export interface RemoteOrderRow {
  * Como a tabela `orders` não tem coluna dedicada pra shipping, embarcamos os
  * dados dentro do JSONB `delivery` (campo `shipping`).
  */
-export async function saveOrderRemote(order: SavedOrder, userId: string | null): Promise<void> {
+export async function saveOrderRemote(
+  order: SavedOrder,
+  userId: string | null,
+  extras?: {
+    /** UUID do cupom aplicado — server usa pra redeemCoupon na tabela coupon_redemptions. */
+    couponId?: string | null
+    /** Código do cupom (ex: "ACAI20") — logado por auditoria + analytics. */
+    couponCode?: string | null
+    /** Desconto aplicado em reais — registrado em coupon_redemptions.discount_applied_brl. */
+    couponDiscount?: number | null
+  },
+): Promise<void> {
   try {
     const payload = {
       id: order.id,
@@ -288,6 +299,13 @@ export async function saveOrderRemote(order: SavedOrder, userId: string | null):
       pix_expires_at: order.pixExpiresAt ? new Date(order.pixExpiresAt).toISOString() : null,
       gift: order.gift,
       donation_amount: order.donationAmount,
+      // Cupom é "metadata" — server usa pra redeemCoupon (registrar em
+      // coupon_redemptions) e markLeadConverted (fecha sequência de recovery
+      // pro email do cliente). NÃO persiste como coluna de orders (sem
+      // migration de tabela necessária).
+      coupon_id: extras?.couponId ?? null,
+      coupon_code: extras?.couponCode ?? null,
+      coupon_discount: extras?.couponDiscount ?? null,
     }
 
     const res = await fetch("/api/orders/create", {
