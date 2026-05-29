@@ -457,11 +457,15 @@ export function ProductCustomizer({ product }: { product: Product }) {
               </span>
               {showCouponPrice ? (
                 <span className="flex flex-col items-end leading-tight">
-                  <span className="text-[10px] font-medium text-white/70 line-through tabular-nums md:text-xs">
+                  <span className="text-[10px] font-medium text-white/85 line-through tabular-nums md:text-xs">
                     R$ {formatMoney(total)}
                   </span>
                   <span className="text-base font-extrabold tabular-nums md:text-lg">
                     R$ {formatMoney(totalWithCoupon)}
+                  </span>
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-white/90 md:text-[10px]">
+                    <Ticket className="h-2.5 w-2.5" />
+                    com cupom {coupon.code}
                   </span>
                 </span>
               ) : (
@@ -469,14 +473,6 @@ export function ProductCustomizer({ product }: { product: Product }) {
               )}
             </button>
           </div>
-          {showCouponPrice && (
-            <div className="flex items-center justify-end gap-1.5 text-[11px] font-bold text-primary">
-              <Ticket className="h-3 w-3" />
-              <span>
-                Com cupom <span className="font-extrabold">{coupon.code}</span>
-              </span>
-            </div>
-          )}
           {cartItemCount > 0 && (
             <button
               type="button"
