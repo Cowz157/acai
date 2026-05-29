@@ -277,6 +277,22 @@ export function ProductCustomizer({ product }: { product: Product }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coberturas2Total, frutas2Total, complementos2Total, turbines2Total, differentCups])
 
+  // Quando Copo 1 fica 100% preenchido (todas seções no max), abre Copo 2
+  // automaticamente pra facilitar o lead. Dispara só 1x — se o user fechar
+  // Copo 2 depois, não reabre.
+  const cup1Complete = coberturasTotal === 2 && frutasTotal === 2 && complementosTotal === 4 && turbinesTotal === 1
+  const autoOpenedCup2Ref = useRef(false)
+  useEffect(() => {
+    if (!differentCups) {
+      autoOpenedCup2Ref.current = false
+      return
+    }
+    if (cup1Complete && !autoOpenedCup2Ref.current && openCup === 1) {
+      autoOpenedCup2Ref.current = true
+      setOpenCup(2)
+    }
+  }, [cup1Complete, differentCups, openCup])
+
   useEffect(() => {
     if (!autoAdvancedRef.current) return
     autoAdvancedRef.current = false
