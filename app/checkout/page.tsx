@@ -16,6 +16,7 @@ import { updateMetaAdvancedMatching } from "@/lib/meta-pixel"
 import { createVyatPixWithRetry, describeVyatError } from "@/lib/pix-vyat"
 import { formatMoneyBR, unmaskDigits } from "@/lib/format"
 import { getStoredUtms } from "@/lib/utms"
+import { clearStoredCoupon, getStoredCoupon } from "@/lib/coupon-url"
 import type { AppliedCoupon } from "@/components/checkout/coupon-field"
 import { orderId as makeOrderId, uuid } from "@/lib/uuid"
 import { AddressStep } from "@/components/checkout/address-step"
@@ -35,14 +36,18 @@ export default function CheckoutPage() {
   const items = useCart((s) => s.items)
   const clearCart = useCart((s) => s.clearCart)
   const user = useAuth((s) => s.user)
-  /** Cupom da URL — lido de window.location.search no mount em vez de
-   *  useSearchParams pra evitar prerender error do Next.js 16 que exige
-   *  Suspense boundary em torno desse hook. Como o /checkout é Client
-   *  Component dinâmico, ler direto da window é mais simples. */
+  /** Cupom — fallback em cascata:
+   *  1. Query string da URL atual (ex: user veio direto pra /checkout?cupom=X)
+   *  2. localStorage capturado em pageview anterior (caso típico: user veio
+   *     pra / com ?cupom=X, navegou pra /produto/[slug], depois pra /checkout
+   *     — a query original morreu mas o cupom ficou salvo pelo UtmsCapture).
+   *  Limpa storage após auto-aplicar com sucesso (cliente que já usou). */
   const [couponFromUrl, setCouponFromUrl] = useState<string | null>(null)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const code = (params.get("cupom") || params.get("coupon") || "").trim().toUpperCase()
+    const fromQuery = (params.get("cupom") || params.get("coupon") || "").trim().toUpperCase()
+    const fromStorage = getStoredCoupon()
+    const code = fromQuery || fromStorage
     if (code) setCouponFromUrl(code)
   }, [])
 
@@ -118,10 +123,13 @@ export default function CheckoutPage() {
           toast.success(`Cupom ${data.coupon.code} aplicado automaticamente!`, {
             description: `Você ganhou ${formatMoneyBR(data.discountBrl)} de desconto 💜`,
           })
+          // Limpa storage — cliente já usou, próxima sessão não re-tenta
+          // (max_uses_per_email=1 daria silent fail mesmo, mas é higiênico).
+          clearStoredCoupon()
         }
-        // Se inválido (expirado, esgotado, min_subtotal), silenciosamente
-        // não aplica — não polui UX com erro de algo que o user não
-        // tentou ativamente. Ele pode digitar manualmente se quiser.
+        // Se inválido (expirado, esgotado, já usado), silenciosamente não
+        // aplica — não polui UX com erro de algo que o user não tentou
+        // ativamente. Ele pode digitar manualmente se quiser.
       })
       .catch(() => {
         // Erro de rede — silencioso (mesma lógica)
