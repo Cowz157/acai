@@ -148,9 +148,14 @@ const SECTION_MAXES = [2, 2, 4, 1] as const
 const isCupComplete = (totals: ReturnType<typeof cupTotals>) =>
   totals.cob === 2 && totals.fru === 2 && totals.com === 4 && totals.tur === 1
 
-/** Limite máximo de copos personalizáveis individualmente. Acima disso a UX
- *  fica pesada demais (muitos cards colapsáveis) — esconde o toggle. */
-const MAX_DIFFERENT_CUPS = 6
+/** Limite máximo de copos físicos por unidade adicionada ao carrinho.
+ *  Aplica DUAS regras:
+ *   1. Stepper de quantity não permite ultrapassar esse total de copos
+ *      (combo qty máx = MAX/2, avulso qty máx = MAX).
+ *   2. Toggle "Cada um diferente" só aparece quando o total de copos cabe nesse limite.
+ *  6 cobre festa pequena / casa cheia sem explodir UX nem operacional —
+ *  pedidos maiores devem ser fracionados em items separados. */
+const MAX_CUPS_PER_ITEM = 6
 
 export function ProductCustomizer({ product }: { product: Product }) {
   // Cup 1 (sempre presente, mantém states separados pra auto-advance com scroll)
@@ -203,16 +208,24 @@ export function ProductCustomizer({ product }: { product: Product }) {
   const totalWithCoupon = Math.max(0, total - couponUnitDiscount)
 
   // Número total de copos físicos que o cliente vai levar
-  const numTotalCups = isCombo ? 2 : quantity
+  // (combo direto = 2 copos por unidade, avulso = 1 por unidade).
+  const numTotalCups = isCombo ? quantity * 2 : quantity
+
+  // Limite hard de quantity no stepper, derivado de MAX_CUPS_PER_ITEM:
+  //  - combo direto: até MAX/2 unidades (= MAX copos)
+  //  - avulso: até MAX unidades (= MAX copos)
+  //  - addon (acessório qualquer): sem limite específico
+  const maxQuantity = isAddon
+    ? Number.POSITIVE_INFINITY
+    : isCombo
+      ? Math.floor(MAX_CUPS_PER_ITEM / 2)
+      : MAX_CUPS_PER_ITEM
+  const atMaxQuantity = quantity >= maxQuantity
 
   // Toggle "Cada um diferente" aparece quando o total de copos físicos cabe
-  // no limite MAX_DIFFERENT_CUPS:
-  //  - combo direto: 2 copos por unidade → permite qty 1..3 (2/4/6 copos)
-  //  - avulso: 1 copo por unidade → permite qty 2..MAX_DIFFERENT_CUPS (6 copos)
-  const canDifferentiate =
-    !isAddon &&
-    ((isCombo && quantity >= 1 && quantity * 2 <= MAX_DIFFERENT_CUPS) ||
-      (isAvulso && quantity >= 2 && quantity <= MAX_DIFFERENT_CUPS))
+  // no limite MAX_CUPS_PER_ITEM. Como maxQuantity já garante isso, basta
+  // checar que há pelo menos 2 copos pra fazer sentido a personalização.
+  const canDifferentiate = !isAddon && numTotalCups >= 2 && numTotalCups <= MAX_CUPS_PER_ITEM
 
   // Se cliente ativou "diferentes" e depois mudou quantity quebrando a regra,
   // volta automático pra "iguais" — evita estado inconsistente no addToCart.
@@ -766,9 +779,11 @@ export function ProductCustomizer({ product }: { product: Product }) {
               </span>
               <button
                 type="button"
-                onClick={() => setQuantity((q) => q + 1)}
+                onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+                disabled={atMaxQuantity}
                 aria-label="Aumentar quantidade"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition hover:bg-muted"
+                title={atMaxQuantity ? `Máximo ${MAX_CUPS_PER_ITEM} copos por pedido` : undefined}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground/50 disabled:hover:bg-transparent"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -802,6 +817,14 @@ export function ProductCustomizer({ product }: { product: Product }) {
               )}
             </button>
           </div>
+          {atMaxQuantity && (
+            <div className="inline-flex self-center items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[11px] font-semibold text-primary md:text-xs">
+              <span className="inline-flex h-4 items-center rounded-full bg-primary px-1.5 text-[9px] font-extrabold uppercase tracking-wide text-white">
+                Máx
+              </span>
+              Limite de {MAX_CUPS_PER_ITEM} copos por pedido atingido
+            </div>
+          )}
           {cartItemCount > 0 && (
             <button
               type="button"
