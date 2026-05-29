@@ -460,12 +460,12 @@ export function ProductCustomizer({ product }: { product: Product }) {
                   <span className="text-[10px] font-medium text-white/85 line-through tabular-nums md:text-xs">
                     R$ {formatMoney(total)}
                   </span>
-                  <span className="text-base font-extrabold tabular-nums md:text-lg">
+                  <span
+                    className="inline-flex items-center gap-1.5 text-base font-extrabold tabular-nums md:text-lg"
+                    title={`Com cupom ${coupon.code}`}
+                  >
+                    <Ticket className="h-3.5 w-3.5 shrink-0" aria-label={`Com cupom ${coupon.code}`} />
                     R$ {formatMoney(totalWithCoupon)}
-                  </span>
-                  <span className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-white/90 md:text-[10px]">
-                    <Ticket className="h-2.5 w-2.5" />
-                    com cupom {coupon.code}
                   </span>
                 </span>
               ) : (
