@@ -150,7 +150,7 @@ const isCupComplete = (totals: ReturnType<typeof cupTotals>) =>
 
 /** Limite máximo de copos personalizáveis individualmente. Acima disso a UX
  *  fica pesada demais (muitos cards colapsáveis) — esconde o toggle. */
-const MAX_DIFFERENT_CUPS = 4
+const MAX_DIFFERENT_CUPS = 6
 
 export function ProductCustomizer({ product }: { product: Product }) {
   // Cup 1 (sempre presente, mantém states separados pra auto-advance com scroll)
@@ -205,12 +205,14 @@ export function ProductCustomizer({ product }: { product: Product }) {
   // Número total de copos físicos que o cliente vai levar
   const numTotalCups = isCombo ? 2 : quantity
 
-  // Toggle "Cada um diferente" aparece quando:
-  //  - combo direto qty=1 (2 copos) — combo qty>=2 vira 4+ copos, escondemos pra evitar UX pesada
-  //  - avulso qty entre 2 e MAX_DIFFERENT_CUPS (4) — cobre 99% dos casos sem explodir interface
+  // Toggle "Cada um diferente" aparece quando o total de copos físicos cabe
+  // no limite MAX_DIFFERENT_CUPS:
+  //  - combo direto: 2 copos por unidade → permite qty 1..3 (2/4/6 copos)
+  //  - avulso: 1 copo por unidade → permite qty 2..MAX_DIFFERENT_CUPS (6 copos)
   const canDifferentiate =
     !isAddon &&
-    ((isCombo && quantity === 1) || (isAvulso && quantity >= 2 && quantity <= MAX_DIFFERENT_CUPS))
+    ((isCombo && quantity >= 1 && quantity * 2 <= MAX_DIFFERENT_CUPS) ||
+      (isAvulso && quantity >= 2 && quantity <= MAX_DIFFERENT_CUPS))
 
   // Se cliente ativou "diferentes" e depois mudou quantity quebrando a regra,
   // volta automático pra "iguais" — evita estado inconsistente no addToCart.
