@@ -115,7 +115,7 @@ function PaymentOption({
             {badge && (
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
+                  "whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
                   badgeTone === "success" ? "bg-success text-white" : "bg-muted-foreground/15 text-muted-foreground",
                 )}
               >
@@ -191,7 +191,7 @@ export function PaymentStep({
           icon={<CreditCard className="h-4 w-4" />}
           title="Cartão"
           description="Crédito ou débito na maquininha"
-          badge="Indisponível no momento"
+          badge="Indisponível"
           badgeTone="muted"
           disabled
         />
