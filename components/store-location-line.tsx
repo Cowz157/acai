@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, MapPin } from "lucide-react"
+import { MapPin, Pencil } from "lucide-react"
 import { useDetectedLocation } from "@/lib/detected-location"
 import { LOCATION_MODAL_OPEN_EVENT } from "./location-modal"
 
@@ -10,7 +10,9 @@ import { LOCATION_MODAL_OPEN_EVENT } from "./location-modal"
  *
  * Clicável: dispara o evento que reabre o LocationModal — útil quando o IP
  * detectou a cidade errada (VPN, IP de operadora 4G/5G de outra cidade,
- * Wi-Fi corporativo de outra cidade).
+ * Wi-Fi corporativo de outra cidade). Visual discreto: pill com border-dashed
+ * muted + ícone de lápis pequeno; cores ganham peso só no hover, sem competir
+ * com o nome da loja acima.
  */
 export function StoreLocationLine() {
   const loc = useDetectedLocation()
@@ -22,22 +24,27 @@ export function StoreLocationLine() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label="Trocar localização"
-      className="mt-1 inline-flex items-center justify-center gap-1.5 rounded-full px-2 py-0.5 text-sm transition hover:bg-muted/60 md:text-base"
-    >
-      <MapPin className="h-4 w-4 text-muted-foreground" />
-      {hasLocation ? (
-        <span>
-          Atendendo {loc!.city}
-          {loc!.stateCode ? ` - ${loc!.stateCode}` : ""}
+    <div className="mt-1 flex justify-center">
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label="Trocar localização"
+        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-muted-foreground/25 px-3 py-0.5 text-sm text-foreground transition hover:border-primary/60 hover:bg-primary-soft/40 md:text-base"
+      >
+        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+        {hasLocation ? (
+          <span>
+            Atendendo {loc!.city}
+            {loc!.stateCode ? ` - ${loc!.stateCode}` : ""}
+          </span>
+        ) : (
+          <span>Atendemos sua região</span>
+        )}
+        <span className="ml-0.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary/80 md:text-xs">
+          <Pencil className="h-3 w-3 shrink-0" aria-hidden="true" />
+          Trocar
         </span>
-      ) : (
-        <span>Atendemos sua região</span>
-      )}
-      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-    </button>
+      </button>
+    </div>
   )
 }

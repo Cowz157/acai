@@ -7,16 +7,22 @@ import { StoreLocationLine } from "./store-location-line"
 export function SiteHeader() {
   return (
     <header className="relative">
-      {/* Banner */}
+      {/* Banner — usa <picture> pra carregar só a versão certa pro tamanho da
+          tela. Mobile (até md): banner.png otimizado pra ratio ~2.5:1. Desktop
+          (md+): banner-desktop.png otimizado pra ratio ~9.6:1. Cada tamanho de
+          tela só baixa 1 imagem, zero desperdício de bandwidth. */}
       <div className="relative h-[170px] w-full overflow-hidden md:h-[200px]">
-        <Image
-          src="/images/banner.webp"
-          alt="Banner Açaí Paraíso"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[15%_center] md:object-center"
-        />
+        <picture>
+          <source media="(min-width: 768px)" srcSet="/images/banner-desktop.png" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/banner.png"
+            alt="Banner Açaí Paraíso"
+            loading="eager"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full object-cover object-[15%_center] md:object-center"
+          />
+        </picture>
       </div>
 
       {/* Cartão branco com cantos arredondados (estilo card sobreposto ao banner) */}

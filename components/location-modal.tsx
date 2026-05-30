@@ -182,6 +182,12 @@ export function LocationModal() {
   const [city, setCity] = useState("")
   /** Marca true quando o estado/cidade foram preenchidos via IP (não manual). */
   const [autoDetected, setAutoDetected] = useState(false)
+  /** True quando o modal foi reaberto via StoreLocationLine ("Trocar"). Nesse
+   *  caso o cliente JÁ tem localização salva — pode fechar o modal sem completar
+   *  o fluxo (clicou sem querer ou desistiu de trocar). Na primeira visita
+   *  (SEEN_KEY=null) o modal não pode ser fechado sem escolher — bloqueia o
+   *  acesso à loja propositalmente. */
+  const [canDismiss, setCanDismiss] = useState(false)
   // Lista de municípios buscada via IBGE quando estado é escolhido. citiesByState
   // estático só cobre RJ/SP/MG; pros outros 24 estados, IBGE preenche.
   const [cities, setCities] = useState<string[]>([])
@@ -203,6 +209,7 @@ export function LocationModal() {
   // Reabertura externa via StoreLocationLine. Pula auto-detecção (cliente já
   // tá tentando trocar manualmente — refazer IP devolveria o mesmo resultado
   // errado) e pré-popula com a localização atual pra ele só ajustar.
+  // Marca canDismiss=true pra renderizar o X de fechar (cliente já tem loc).
   useEffect(() => {
     const handler = () => {
       const current = getDetectedLocation()
@@ -210,6 +217,7 @@ export function LocationModal() {
       if (current?.stateCode) setStateCode(current.stateCode)
       if (current?.city) setCity(current.city)
       setAutoDetected(false)
+      setCanDismiss(true)
       setStep(1)
       setOpen(true)
     }
@@ -280,7 +288,16 @@ export function LocationModal() {
       /* ignora */
     }
     setOpen(false)
+    setCanDismiss(false)
     window.dispatchEvent(new CustomEvent("location-modal-closed"))
+  }
+
+  /** Dismiss "leve" — cliente clicou no X de fechar (modo reaberto via "Trocar").
+   *  Não toca SEEN_KEY nem dispara location-modal-closed (já foi disparado na
+   *  primeira sessão). Localização salva fica intacta. */
+  const dismissModal = () => {
+    setOpen(false)
+    setCanDismiss(false)
   }
 
   if (!open) return null
@@ -291,7 +308,17 @@ export function LocationModal() {
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+        {canDismiss && (
+          <button
+            type="button"
+            onClick={dismissModal}
+            aria-label="Fechar"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         {step === 0 && (
           <div className="flex flex-col items-center py-8">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
