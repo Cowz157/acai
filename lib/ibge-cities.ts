@@ -1,7 +1,7 @@
 /**
  * Busca municípios brasileiros via API pública do IBGE — usado pro fluxo
- * manual do location-modal quando o cliente seleciona um estado e a lista
- * estática `citiesByState` em lib/data.ts não cobre o estado escolhido.
+ * manual do location-modal quando o cliente seleciona um estado. Cobre os
+ * 5.570 municípios oficiais do Brasil (todos os 27 estados).
  *
  * IBGE: https://servicodados.ibge.gov.br/api/docs/localidades — CORS aberto,
  * sem auth, dado oficial e estável. Cache module-level em-memory porque

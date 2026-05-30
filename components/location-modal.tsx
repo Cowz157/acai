@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
-import { citiesByState, stateCodeByName, states } from "@/lib/data"
+import { stateCodeByName, states } from "@/lib/data"
 import { saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
 import { fetchCitiesByState } from "@/lib/ibge-cities"
@@ -227,18 +227,14 @@ export function LocationModal() {
     }
   }, [step])
 
-  // Carrega cidades do IBGE quando entra no step 2. Estática (lib/data.ts) tem
-  // prioridade pros estados cobertos (RJ/SP/MG), evita rede desnecessária.
+  // Carrega cidades do IBGE quando entra no step 2. SEMPRE usa IBGE pra cobrir
+  // os 5.570 municípios oficiais do Brasil — listas estáticas em lib/data.ts
+  // sempre ficavam incompletas (ex: SP tinha 6 das 645 cidades, faltava
+  // Pirassununga e centenas de outras). Cache module-level dentro de
+  // ibge-cities.ts evita rede repetida quando o cliente troca de estado.
   useEffect(() => {
     if (step !== 2 || !state) return
     let cancelled = false
-
-    const local = citiesByState[state] ?? []
-    if (local.length > 0) {
-      setCities(local)
-      setLoadingCities(false)
-      return
-    }
 
     setLoadingCities(true)
     fetchCitiesByState(state)

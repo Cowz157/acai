@@ -484,23 +484,6 @@ export const stateCodeByName: Record<string, string> = {
   Tocantins: "TO",
 }
 
-export const citiesByState: Record<string, string[]> = {
-  "Rio de Janeiro": [
-    "Angra dos Reis",
-    "Rio de Janeiro",
-    "Niterói",
-    "São Gonçalo",
-    "Duque de Caxias",
-    "Nova Iguaçu",
-    "Petrópolis",
-    "Volta Redonda",
-    "Campos dos Goytacazes",
-    "Macaé",
-  ],
-  "São Paulo": ["São Paulo", "Campinas", "Santos", "Guarulhos", "Osasco", "São Bernardo do Campo"],
-  "Minas Gerais": ["Belo Horizonte", "Uberlândia", "Contagem", "Juiz de Fora", "Betim"],
-}
-
 export const coberturas = [
   "Amora",
   "Caramelo",
