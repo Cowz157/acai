@@ -9,7 +9,13 @@ import { generateCPF } from "@/lib/cpf"
 import { formatMoneyBR, unmaskDigits } from "@/lib/format"
 import { cancelOrder, type SavedOrder } from "@/lib/order-store"
 import { mapVyatStatus } from "@/lib/payment-tracker"
-import { createVyatPixWithRetry, describeVyatError, fetchVyatPixStatus } from "@/lib/pix-vyat"
+import {
+  createVyatPixWithRetry,
+  describeVyatError,
+  fetchVyatPixStatus,
+  VyatError,
+  type VyatPixResponse,
+} from "@/lib/pix-vyat"
 import { uuid } from "@/lib/uuid"
 
 interface AwaitingPixCardProps {
@@ -128,31 +134,58 @@ export function AwaitingPixCard({ order, onRegenerated, variant = "standalone" }
     setRegenError(null)
     setRegenAttempt(0)
     try {
-      const newExternalId = uuid() // novo UUID — Vyat aceita duplicado se diferente
       const produtoLabel =
         order.items
           .slice(0, 3)
           .map((it) => `${it.quantity}x ${it.productName}`)
           .join(", ") + (order.items.length > 3 ? "..." : "")
 
-      const pixResponse = await createVyatPixWithRetry(
-        {
-          valor: order.total,
-          nome: order.delivery.fullName,
-          email: order.delivery.email,
-          cpf: generateCPF(),
-          telefone: order.delivery.phone ? unmaskDigits(order.delivery.phone) : "",
-          produto: `Açaí Paraíso — ${produtoLabel}`,
-          external_id: newExternalId,
-        },
-        {},
-        (attempt) => setRegenAttempt(attempt),
-      )
+      const buildPayload = (externalId: string) => ({
+        valor: order.total,
+        nome: order.delivery.fullName,
+        email: order.delivery.email,
+        cpf: generateCPF(),
+        telefone: order.delivery.phone ? unmaskDigits(order.delivery.phone) : "",
+        produto: `Açaí Paraíso — ${produtoLabel}`,
+        external_id: externalId,
+      })
+
+      // Reusa order.id como external_id pra manter o event_id do Purchase
+      // ESTÁVEL entre browser pixel e CAPI (Meta só dedupa se baterem). A Vyat
+      // (commit ebeca7e) libera o reuso quando o PIX anterior está em status
+      // terminal sem pagamento (expired/cancelled/refunded/chargeback).
+      let usedExternalId = order.id
+      let pixResponse: VyatPixResponse
+      try {
+        pixResponse = await createVyatPixWithRetry(
+          buildPayload(usedExternalId),
+          {},
+          (attempt) => setRegenAttempt(attempt),
+        )
+      } catch (err) {
+        // Edge raro: tx anterior ainda pending/approved (não-terminal) → 409
+        // DUPLICATE_EXTERNAL_ID. Cai pra uuid novo: sacrifica o dedup DESSE
+        // regen, mas desbloqueia o cliente em vez de travar a tela.
+        if (err instanceof VyatError && (err.httpStatus === 409 || err.code === "DUPLICATE_EXTERNAL_ID")) {
+          console.warn(
+            "[regen] Vyat rejeitou reuso de order.id (tx anterior não-terminal), usando uuid:",
+            err,
+          )
+          usedExternalId = uuid()
+          pixResponse = await createVyatPixWithRetry(
+            buildPayload(usedExternalId),
+            {},
+            (attempt) => setRegenAttempt(attempt),
+          )
+        } else {
+          throw err
+        }
+      }
 
       onRegenerated({
         // Mesmo motivo do checkout: polling precisa do vyat_transaction_id, não do eco.
         gatewayTransactionId:
-          pixResponse.vyat_transaction_id ?? pixResponse.transaction_id ?? newExternalId,
+          pixResponse.vyat_transaction_id ?? pixResponse.transaction_id ?? usedExternalId,
         pix: {
           qrCodeUrl: pixResponse.qrcode_url ?? null,
           codigoPix: pixResponse.codigo_pix ?? null,

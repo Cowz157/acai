@@ -5,9 +5,20 @@ import { fetchVyatPixStatus } from "./pix-vyat"
 import { updateMetaAdvancedMatching } from "./meta-pixel"
 import { type PaymentStatus, type SavedOrder } from "./order-store"
 
+/** Intervalo base de polling. Em erro (429 Too Many Requests, rede) aplica
+ *  backoff exponencial até POLL_BACKOFF_MAX_MS pra tirar pressão do endpoint
+ *  /pix/status do Vyat (vários PIX pendentes + retries batiam rate limit). */
 const POLL_INTERVAL_MS = 5000
+const POLL_BACKOFF_MAX_MS = 30000
 /** Tempo máximo de polling antes de desistir (1h cobre PIX que vencem em 30min com folga). */
 const POLL_TIMEOUT_MS = 60 * 60 * 1000
+
+/** Dedup síncrono in-memory de Purchase já disparado no dataLayer, por order.id.
+ *  Complementa a flag em localStorage: garante 1× por order na MESMA sessão
+ *  mesmo quando localStorage está bloqueado (private mode / Safari ITP) ou
+ *  quando o effect re-roda antes do setItem completar. localStorage cobre o
+ *  caso cross-page/cross-session. */
+const firedPurchaseOrderIds = new Set<string>()
 
 /** Mapeia status vindo do Vyat (`/pix/status`) para nosso PaymentStatus interno. */
 export function mapVyatStatus(status: string): PaymentStatus {
@@ -43,7 +54,6 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
   const startedAt = useRef<number>(Date.now())
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
-  const emailDispatchedRef = useRef<string | null>(null)
 
   useEffect(() => {
     startedAt.current = Date.now()
@@ -55,46 +65,63 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
     if (order.paymentStatus !== "pending") return
     if (!order.gatewayTransactionId) return
 
+    // Captura valores estáveis no setup do effect. Removido o `order` inteiro
+    // das deps: antes o effect re-subscrevia (e disparava um tick imediato
+    // extra) a cada re-render do parent que recriasse o objeto order, somando
+    // requests fora da cadência e contribuindo pro 429.
+    const txId = order.gatewayTransactionId
+    const currentPaidAt = order.paidAt
+
     let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let delay = POLL_INTERVAL_MS
+
+    const schedule = (ms: number) => {
+      if (cancelled) return
+      timer = setTimeout(tick, ms)
+    }
 
     const tick = async () => {
       if (cancelled) return
       if (Date.now() - startedAt.current > POLL_TIMEOUT_MS) return
 
       try {
-        const remote = await fetchVyatPixStatus(order.gatewayTransactionId!)
+        const remote = await fetchVyatPixStatus(txId)
         if (cancelled) return
 
         const newStatus = mapVyatStatus(remote.status)
-        if (newStatus === order.paymentStatus) return
-
-        onUpdateRef.current({
-          paymentStatus: newStatus,
-          paidAt: newStatus === "approved" ? Date.now() : order.paidAt,
-        })
-
-        if (newStatus === "approved" && emailDispatchedRef.current !== order.id) {
-          emailDispatchedRef.current = order.id
-          // dataLayer purchase + mark-paid + send-email foram extraídos pro
-          // useEffect abaixo. Esse block continua sendo o caminho "rápido"
-          // quando o polling DETECTA a mudança pending → approved em tempo
-          // real (UX: status muda na tela na hora). O useEffect cobre os
-          // cenários onde o polling NÃO detecta (pedido chega já approved
-          // via cron, refresh, sessão posterior).
+        if (newStatus !== "pending") {
+          // Status mudou (approved/refunded/chargeback) — propaga e PARA o
+          // polling. O dispatch de purchase/email roda nos effects dedicados
+          // abaixo (gated em approved, deduped). O effect re-roda só se voltar
+          // a pending (não acontece na prática).
+          onUpdateRef.current({
+            paymentStatus: newStatus,
+            paidAt: newStatus === "approved" ? Date.now() : currentPaidAt,
+          })
+          return
         }
+        // Ainda pending — sucesso reseta o backoff pro intervalo base.
+        delay = POLL_INTERVAL_MS
+        schedule(delay)
       } catch (err) {
-        console.error("[payment-tracker] erro polling status PIX:", err)
+        if (cancelled) return
+        // Backoff exponencial em erro (inclui 429 Too Many Requests): dobra o
+        // intervalo até o cap, aliviando o endpoint /pix/status do Vyat.
+        console.error("[payment-tracker] erro polling status PIX (aplicando backoff):", err)
+        delay = Math.min(delay * 2, POLL_BACKOFF_MAX_MS)
+        schedule(delay)
       }
     }
 
+    // Primeiro tick imediato; os próximos são agendados conforme o backoff.
     void tick()
-    const interval = setInterval(tick, POLL_INTERVAL_MS)
 
     return () => {
       cancelled = true
-      clearInterval(interval)
+      if (timer) clearTimeout(timer)
     }
-  }, [order?.id, order?.gatewayTransactionId, order?.paymentStatus, order?.payment.method, order])
+  }, [order?.id, order?.gatewayTransactionId, order?.paymentStatus, order?.payment.method])
 
   // Effect separado pra dispatch do evento `purchase` no dataLayer. Independente
   // do polling — dispara em qualquer caminho onde o pedido fica approved:
@@ -109,16 +136,25 @@ export function usePaymentTracking({ order, onUpdate }: UsePaymentTrackingOption
     if (order.paymentStatus !== "approved") return
     if (typeof window === "undefined") return
 
+    // Guarda síncrona in-memory PRIMEIRO — fecha a janela de double-fire na
+    // mesma sessão antes mesmo de tocar no localStorage (que pode estar
+    // bloqueado ou ter escrita assíncrona em relação a re-runs do effect).
+    if (firedPurchaseOrderIds.has(order.id)) return
+
     const flagKey = `purchaseEventFired_${order.id}`
     let alreadyFired = false
     try {
       alreadyFired = Boolean(window.localStorage.getItem(flagKey))
     } catch {
       // localStorage indisponível (privacy mode etc) — segue sem flag.
-      // No pior caso pode duplicar em refresh, mas o pixel.js da Vyat e o
-      // próprio Meta dedupam pelo eventID = transaction_id.
+      // A guarda in-memory acima ainda protege same-session; cross-session
+      // o pixel.js da Vyat e o Meta dedupam pelo eventID = transaction_id.
     }
     if (alreadyFired) return
+
+    // Marca como disparado ANTES de pushar — qualquer re-entrada do effect
+    // (re-render rápido, storage bloqueado) cai no early-return acima.
+    firedPurchaseOrderIds.add(order.id)
 
     // Advanced Matching reforçado pro Purchase — passa external_id +
     // email/phone/nome do pedido. Garante match keys mesmo em sessões
