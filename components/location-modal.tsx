@@ -79,7 +79,6 @@ function SearchableSelect({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={placeholder}
-          autoFocus
           autoComplete="off"
           className="w-full rounded-xl border border-border bg-white py-3 pl-10 pr-9 text-sm font-medium text-foreground outline-none focus:border-primary"
         />
