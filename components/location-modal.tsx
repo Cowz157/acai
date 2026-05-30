@@ -3,10 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, Check, CheckCircle2, Loader2, MapPin, Search, X } from "lucide-react"
 import { stateCodeByName, states } from "@/lib/data"
-import { saveDetectedLocation } from "@/lib/detected-location"
+import { getDetectedLocation, saveDetectedLocation } from "@/lib/detected-location"
 import { fetchIpLocation } from "@/lib/geolocate"
 import { fetchCitiesByState } from "@/lib/ibge-cities"
 import { cn } from "@/lib/utils"
+
+/** Evento que reabre o LocationModal mesmo quando o cliente já viu antes.
+ *  Disparado pelo StoreLocationLine quando cliente clica em "Atendendo X - Y"
+ *  pra corrigir a cidade (ex: VPN errada, IP de operadora). */
+export const LOCATION_MODAL_OPEN_EVENT = "location-modal-open"
 
 /**
  * Combobox com 2 caminhos paralelos:
@@ -193,6 +198,23 @@ export function LocationModal() {
     } catch {
       setOpen(true)
     }
+  }, [])
+
+  // Reabertura externa via StoreLocationLine. Pula auto-detecção (cliente já
+  // tá tentando trocar manualmente — refazer IP devolveria o mesmo resultado
+  // errado) e pré-popula com a localização atual pra ele só ajustar.
+  useEffect(() => {
+    const handler = () => {
+      const current = getDetectedLocation()
+      if (current?.state) setState(current.state)
+      if (current?.stateCode) setStateCode(current.stateCode)
+      if (current?.city) setCity(current.city)
+      setAutoDetected(false)
+      setStep(1)
+      setOpen(true)
+    }
+    window.addEventListener(LOCATION_MODAL_OPEN_EVENT, handler)
+    return () => window.removeEventListener(LOCATION_MODAL_OPEN_EVENT, handler)
   }, [])
 
   // Auto-detecção via IP assim que o modal abre

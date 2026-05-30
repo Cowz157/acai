@@ -224,7 +224,7 @@ export function AddressStep({
               <Sparkles className="h-3 w-3 text-primary/70" />
             </span>
             <span className="mt-0.5 block text-xs leading-snug text-muted-foreground md:text-sm">
-              Mande pra alguém especial com uma mensagem personalizada. Perfeito pra surpreender no Dia das Mães 💜
+              Mande pra alguém especial com uma mensagem personalizada no cartão 💜
             </span>
           </span>
         </label>
