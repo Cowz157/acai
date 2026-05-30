@@ -169,9 +169,11 @@ export function PaymentStep({
           </span>
           <h2 className="text-lg font-bold text-primary md:text-xl">Como você quer pagar?</h2>
         </div>
-        <span className="text-right">
+        <span className="shrink-0 text-right">
           <span className="block text-[10px] uppercase tracking-wide text-muted-foreground">Total</span>
-          <span className="block text-base font-extrabold text-success md:text-lg">{formatMoneyBR(total)}</span>
+          <span className="block whitespace-nowrap text-base font-extrabold text-success md:text-lg">
+            {formatMoneyBR(total)}
+          </span>
         </span>
       </header>
 
